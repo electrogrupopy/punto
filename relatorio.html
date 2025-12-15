@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios RH - Electrogrupo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header h1 { font-size: 20px; }
+        .header-links { display: flex; gap: 10px; }
+        .header-links a {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        .header-links a:hover { background: rgba(255,255,255,0.3); }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .filters-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .filters-card h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .filter-group input, .filter-group select {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 180px;
+        }
+        
+        .filter-group input:focus, .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a6fd6; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-success:hover { background: #43a047; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-info { background: #2196f3; color: white; }
+        .btn-info:hover { background: #1976d2; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-warning:hover { background: #f57c00; }
+        
+        /* Resumo Diário */
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .summary-card h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .summary-item .number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .summary-item .label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .summary-item.entrada .number { color: #4caf50; }
+        .summary-item.salida .number { color: #f44336; }
+        .summary-item.pausa .number { color: #ff9800; }
+        .summary-item.retorno .number { color: #2196f3; }
+        
+        /* Lista de Funcionários */
+        .employees-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .employees-card h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .employees-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .employee-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .employee-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .employee-item.selected {
+            border-color: #667eea;
+            background: #e8eaf6;
+        }
+        
+        .employee-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .employee-stats {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .employee-stat {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: white;
+        }
+        
+        .employee-stat.entrada { background: #4caf50; }
+        .employee-stat.salida { background: #f44336; }
+        .employee-stat.pausa { background: #ff9800; }
+        .employee-stat.retorno { background: #2196f3; }
+        
+        /* Tabela de Registros */
+        .report-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .report-header h2 {
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .tipo-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .tipo-badge.entrada { background: #4caf50; }
+        .tipo-badge.salida { background: #f44336; }
+        .tipo-badge.pausa { background: #ff9800; }
+        .tipo-badge.retorno { background: #2196f3; }
+        
+        .foto-thumb {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .foto-thumb:hover {
+            transform: scale(1.1);
+        }
+        
+        .coords {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        /* Modal de Foto */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+        }
+        
+        .modal-info {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Sem Registros */
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .no-data h3 {
+            margin-bottom: 10px;
+        }
+        
+        /* Funcionários ausentes */
+        .absent-list {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .absent-list h4 {
+            color: #e65100;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .absent-list ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .absent-list li {
+            background: white;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { padding: 10px 15px; }
+            .header h1 { font-size: 16px; }
+            .container { padding: 10px; }
+            .filters-row { flex-direction: column; }
+            .filter-group input, .filter-group select { min-width: 100%; }
+            .report-actions { width: 100%; }
+            .report-actions .btn { flex: 1; justify-content: center; }
+            th, td { padding: 8px 10px; font-size: 12px; }
+        }
+        
+        /* Print styles */
+        @media print {
+            .header, .filters-card, .report-actions, .header-links { display: none; }
+            .report-card { box-shadow: none; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Relatórios RH - Electrogrupo</h1>
+        <div class="header-links">
+            <a href="index.html">📝 Registrar</a>
+            <a href="mapa.html">🗺️ Mapa</a>
+            <a href="https://docs.google.com/spreadsheets/d/1O5e46G2obLozmqTtQOJir6iO_Hu7fE-pDY-iKy-Tmxw/edit" target="_blank">📋 Planilha</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Filtros -->
+        <div class="filters-card">
+            <h2>🔍 Filtros</h2>
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Data Início</label>
+                    <input type="date" id="filterDateStart">
+                </div>
+                <div class="filter-group">
+                    <label>Data Fim</label>
+                    <input type="date" id="filterDateEnd">
+                </div>
+                <div class="filter-group">
+                    <label>Funcionário</label>
+                    <select id="filterEmployee">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Obra</label>
+                    <select id="filterObra">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="aplicarFiltros()">🔍 Filtrar</button>
+                <button class="btn btn-success" onclick="carregarDados()">🔄 Atualizar</button>
+            </div>
+        </div>
+        
+        <!-- Resumo Diário -->
+        <div class="summary-card">
+            <h2>📈 Resumo do Período</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="number" id="totalRegistros">0</div>
+                    <div class="label">Total Registros</div>
+                </div>
+                <div class="summary-item">
+                    <div class="number" id="totalFuncionarios">0</div>
+                    <div class="label">Funcionários</div>
+                </div>
+                <div class="summary-item entrada">
+                    <div class="number" id="totalEntradas">0</div>
+                    <div class="label">Entradas</div>
+                </div>
+                <div class="summary-item salida">
+                    <div class="number" id="totalSalidas">0</div>
+                    <div class="label">Saídas</div>
+                </div>
+                <div class="summary-item pausa">
+                    <div class="number" id="totalPausas">0</div>
+                    <div class="label">Pausas</div>
+                </div>
+                <div class="summary-item retorno">
+                    <div class="number" id="totalRetornos">0</div>
+                    <div class="label">Retornos</div>
+                </div>
+            </div>
+            <div id="absentList" class="absent-list" style="display: none;">
+                <h4>⚠️ Funcionários sem registro no período:</h4>
+                <ul id="absentNames"></ul>
+            </div>
+        </div>
+        
+        <!-- Lista de Funcionários -->
+        <div class="employees-card">
+            <h2>👥 Funcionários</h2>
+            <div class="employees-list" id="employeesList">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Carregando...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Relatório Detalhado -->
+        <div class="report-card" id="reportCard" style="display: none;">
+            <div class="report-header">
+                <h2 id="reportTitle">📋 Relatório Detalhado</h2>
+                <div class="report-actions">
+                    <button class="btn btn-danger" onclick="exportarPDF()">📄 Exportar PDF</button>
+                    <button class="btn btn-success" onclick="exportarCSV()">📊 Exportar CSV</button>
+                    <button class="btn btn-info" onclick="window.print()">🖨️ Imprimir</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Hora</th>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Obra</th>
+                            <th>Localização</th>
+                            <th>Observações</th>
+                            <th>Foto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Foto -->
+    <div class="modal" id="photoModal">
+        <span class="modal-close" onclick="fecharModal()">&times;</span>
+        <img id="modalImage" src="" alt="Foto">
+        <div class="modal-info" id="modalInfo"></div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO
+        // ============================================
+        var GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbytkz2c_j-vDVUdyts5iqxeahKcHFN2HTvMpDj8VyF-UXGM4nbOBtXB9Xr0TnxEXj7F/exec';
+        
+        var allData = [];
+        var filteredData = [];
+        var selectedEmployee = null;
+        var allEmployees = []; // Lista de todos os funcionários conhecidos
+        
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Definir data padrão como hoje
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('filterDateStart').value = today;
+            document.getElementById('filterDateEnd').value = today;
+            
+            carregarDados();
+        });
+        
+        // ============================================
+        // CARREGAR DADOS
+        // ============================================
+        function carregarDados() {
+            document.getElementById('employeesList').innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Carregando...</p></div>';
+            
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    // Filtrar testes
+                    allData = data.filter(function(r) {
+                        return r.Nombre !== '** PRUEBA DE CONEXIÓN **' && r.Fecha !== 'TEST';
+                    });
+                    
+                    // Preencher filtros
+                    preencherFiltros();
+                    
+                    // Aplicar filtros
+                    aplicarFiltros();
+                })
+                .catch(function(error) {
+                    console.error('Erro:', error);
+                    document.getElementById('employeesList').innerHTML = '<div class="no-data"><h3>❌ Erro ao carregar dados</h3><p>' + error.message + '</p></div>';
+                });
+        }
+        
+        // ============================================
+        // PREENCHER FILTROS
+        // ============================================
+        function preencherFiltros() {
+            var employees = [];
+            var obras = [];
+            
+            allData.forEach(function(r) {
+                var nome = r.Nombre || r.nomeFuncionario || '';
+                var obra = r.Obra || r.obra || '';
+                
+                if (nome && employees.indexOf(nome) === -1) {
+                    employees.push(nome);
+                }
+                if (obra && obras.indexOf(obra) === -1) {
+                    obras.push(obra);
+                }
+            });
+            
+            employees.sort();
+            obras.sort();
+            
+            allEmployees = employees.slice(); // Guardar lista completa
+            
+            // Preencher select de funcionários
+            var selectEmp = document.getElementById('filterEmployee');
+            selectEmp.innerHTML = '<option value="">Todos</option>';
+            employees.forEach(function(emp) {
+                var opt = document.createElement('option');
+                opt.value = emp;
+                opt.textContent = emp;
+                selectEmp.appendChild(opt);
+            });
+            
+            // Preencher select de obras
+            var selectObra = document.getElementById('filterObra');
+            selectObra.innerHTML = '<option value="">Todas</option>';
+            obras.forEach(function(obra) {
+                var opt = document.createElement('option');
+                opt.value = obra;
+                opt.textContent = obra;
+                selectObra.appendChild(opt);
+            });
+        }
+        
+        // ============================================
+        // APLICAR FILTROS
+        // ============================================
+        function aplicarFiltros() {
+            var dateStart = document.getElementById('filterDateStart').value;
+            var dateEnd = document.getElementById('filterDateEnd').value;
+            var employee = document.getElementById('filterEmployee').value;
+            var obra = document.getElementById('filterObra').value;
+            
+            filteredData = allData.filter(function(r) {
+                var fecha = r.Fecha || r.data || '';
+                var nome = r.Nombre || r.nomeFuncionario || '';
+                var obraReg = r.Obra || r.obra || '';
+                
+                // Converter data DD/MM/YYYY para YYYY-MM-DD para comparação
+                var fechaISO = '';
+                if (fecha && fecha.includes('/')) {
+                    var partes = fecha.split('/');
+                    fechaISO = partes[2] + '-' + partes[1] + '-' + partes[0];
+                }
+                
+                // Filtro por data
+                if (dateStart && fechaISO < dateStart) return false;
+                if (dateEnd && fechaISO > dateEnd) return false;
+                
+                // Filtro por funcionário
+                if (employee && nome !== employee) return false;
+                
+                // Filtro por obra
+                if (obra && obraReg !== obra) return false;
+                
+                return true;
+            });
+            
+            // Ordenar por data e hora
+            filteredData.sort(function(a, b) {
+                var dateA = (a.Fecha || '') + ' ' + (a.Hora || '');
+                var dateB = (b.Fecha || '') + ' ' + (b.Hora || '');
+                return dateA.localeCompare(dateB);
+            });
+            
+            atualizarResumo();
+            atualizarListaFuncionarios();
+            
+            // Se um funcionário específico foi selecionado, mostrar relatório
+            if (employee) {
+                selectedEmployee = employee;
+                mostrarRelatorio();
+            } else {
+                selectedEmployee = null;
+                document.getElementById('reportCard').style.display = 'none';
+            }
+        }
+        
+        // ============================================
+        // ATUALIZAR RESUMO
+        // ============================================
+        function atualizarResumo() {
+            var totalEntradas = 0;
+            var totalSalidas = 0;
+            var totalPausas = 0;
+            var totalRetornos = 0;
+            var funcionariosComRegistro = [];
+            
+            filteredData.forEach(function(r) {
+                var tipo = (r.Tipo || r.tipoRegistro || '').toLowerCase();
+                var nome = r.Nombre || r.nomeFuncionario || '';
+                
+                if (tipo.includes('entrada')) totalEntradas++;
+                else if (tipo.includes('salida') || tipo.includes('saída')) totalSalidas++;
+                else if (tipo.includes('pausa')) totalPausas++;
+                else if (tipo.includes('retorno')) totalRetornos++;
+                
+                if (nome && funcionariosComRegistro.indexOf(nome) === -1) {
+                    funcionariosComRegistro.push(nome);
+                }
+            });
+            
+            document.getElementById('totalRegistros').textContent = filteredData.length;
+            document.getElementById('totalFuncionarios').textContent = funcionariosComRegistro.length;
+            document.getElementById('totalEntradas').textContent = totalEntradas;
+            document.getElementById('totalSalidas').textContent = totalSalidas;
+            document.getElementById('totalPausas').textContent = totalPausas;
+            document.getElementById('totalRetornos').textContent = totalRetornos;
+            
+            // Funcionários ausentes
+            var ausentes = allEmployees.filter(function(emp) {
+                return funcionariosComRegistro.indexOf(emp) === -1;
+            });
+            
+            var absentList = document.getElementById('absentList');
+            var absentNames = document.getElementById('absentNames');
+            
+            if (ausentes.length > 0) {
+                absentNames.innerHTML = ausentes.map(function(n) {
+                    return '<li>' + n + '</li>';
+                }).join('');
+                absentList.style.display = 'block';
+            } else {
+                absentList.style.display = 'none';
+            }
+        }
+        
+        // ============================================
+        // ATUALIZAR LISTA DE FUNCIONÁRIOS
+        // ============================================
+        function atualizarListaFuncionarios() {
+            var container = document.getElementById('employeesList');
+            
+            // Agrupar por funcionário
+            var grupos = {};
+            filteredData.forEach(function(r) {
+                var nome = r.Nombre || r.nomeFuncionario || 'Desconhecido';
+                if (!grupos[nome]) {
+                    grupos[nome] = { entradas: 0, salidas: 0, pausas: 0, retornos: 0, total: 0 };
+                }
+                var tipo = (r.Tipo || r.tipoRegistro || '').toLowerCase();
+                if (tipo.includes('entrada')) grupos[nome].entradas++;
+                else if (tipo.includes('salida') || tipo.includes('saída')) grupos[nome].salidas++;
+                else if (tipo.includes('pausa')) grupos[nome].pausas++;
+                else if (tipo.includes('retorno')) grupos[nome].retornos++;
+                grupos[nome].total++;
+            });
+            
+            var nomes = Object.keys(grupos).sort();
+            
+            if (nomes.length === 0) {
+                container.innerHTML = '<div class="no-data"><h3>📭 Nenhum registro encontrado</h3><p>Ajuste os filtros e tente novamente.</p></div>';
+                return;
+            }
+            
+            var html = '';
+            nomes.forEach(function(nome) {
+                var g = grupos[nome];
+                var selected = selectedEmployee === nome ? 'selected' : '';
+                html += '<div class="employee-item ' + selected + '" onclick="selecionarFuncionario(\'' + nome.replace(/'/g, "\\'") + '\')">';
+                html += '<div class="employee-name">' + nome + '</div>';
+                html += '<div class="employee-stats">';
+                if (g.entradas > 0) html += '<span class="employee-stat entrada">' + g.entradas + ' Entrada(s)</span>';
+                if (g.salidas > 0) html += '<span class="employee-stat salida">' + g.salidas + ' Saída(s)</span>';
+                if (g.pausas > 0) html += '<span class="employee-stat pausa">' + g.pausas + ' Pausa(s)</span>';
+                if (g.retornos > 0) html += '<span class="employee-stat retorno">' + g.retornos + ' Retorno(s)</span>';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // ============================================
+        // SELECIONAR FUNCIONÁRIO
+        // ============================================
+        function selecionarFuncionario(nome) {
+            selectedEmployee = nome;
+            document.getElementById('filterEmployee').value = nome;
+            atualizarListaFuncionarios();
+            mostrarRelatorio();
+        }
+        
+        // ============================================
+        // MOSTRAR RELATÓRIO
+        // ============================================
+        function mostrarRelatorio() {
+            var dados = filteredData;
+            
+            if (selectedEmployee) {
+                dados = dados.filter(function(r) {
+                    return (r.Nombre || r.nomeFuncionario) === selectedEmployee;
+                });
+                document.getElementById('reportTitle').textContent = '📋 Relatório: ' + selectedEmployee;
+            } else {
+                document.getElementById('reportTitle').textContent = '📋 Relatório Geral';
+            }
+            
+            var tbody = document.getElementById('reportBody');
+            
+            if (dados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Nenhum registro encontrado</td></tr>';
+                document.getElementById('reportCard').style.display = 'block';
+                return;
+            }
+            
+            var html = '';
+            dados.forEach(function(r, index) {
+                var tipo = r.Tipo || r.tipoRegistro || '';
+                var tipoClass = tipo.toLowerCase().replace('í', 'i').replace('ú', 'u');
+                if (tipoClass.includes('entrada')) tipoClass = 'entrada';
+                else if (tipoClass.includes('salida') || tipoClass.includes('saída')) tipoClass = 'salida';
+                else if (tipoClass.includes('pausa')) tipoClass = 'pausa';
+                else if (tipoClass.includes('retorno')) tipoClass = 'retorno';
+                
+                var foto = r.Foto || r.foto || '';
+                var fotoHtml = foto && foto.startsWith('data:image') 
+                    ? '<img src="' + foto + '" class="foto-thumb" onclick="abrirFoto(' + index + ')">'
+                    : '<span style="color: #999;">-</span>';
+                
+                html += '<tr>';
+                html += '<td>' + (r.Fecha || r.data || '-') + '</td>';
+                html += '<td>' + (r.Hora || r.hora || '-') + '</td>';
+                html += '<td>' + (r.Nombre || r.nomeFuncionario || '-') + '</td>';
+                html += '<td><span class="tipo-badge ' + tipoClass + '">' + tipo + '</span></td>';
+                html += '<td>' + (r.Obra || r.obra || '-') + '</td>';
+                html += '<td class="coords">' + (r.Latitud || r.latitude || '-') + ', ' + (r.Longitud || r.longitude || '-') + '</td>';
+                html += '<td>' + (r.Observaciones || r.observacoes || '-') + '</td>';
+                html += '<td>' + fotoHtml + '</td>';
+                html += '</tr>';
+            });
+            
+            tbody.innerHTML = html;
+            document.getElementById('reportCard').style.display = 'block';
+            
+            // Scroll para o relatório
+            document.getElementById('reportCard').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // ============================================
+        // MODAL DE FOTO
+        // ============================================
+        function abrirFoto(index) {
+            var dados = selectedEmployee 
+                ? filteredData.filter(function(r) { return (r.Nombre || r.nomeFuncionario) === selectedEmployee; })
+                : filteredData;
+            
+            var r = dados[index];
+            var foto = r.Foto || r.foto || '';
+            
+            if (foto) {
+                document.getElementById('modalImage').src = foto;
+                document.getElementById('modalInfo').innerHTML = 
+                    '<strong>' + (r.Nombre || r.nomeFuncionario) + '</strong><br>' +
+                    (r.Fecha || r.data) + ' ' + (r.Hora || r.hora) + ' - ' + (r.Tipo || r.tipoRegistro);
+                document.getElementById('photoModal').classList.add('active');
+            }
+        }
+        
+        function fecharModal() {
+            document.getElementById('photoModal').classList.remove('active');
+        }
+        
+        document.getElementById('photoModal').addEventListener('click', function(e) {
+            if (e.target === this) fecharModal();
+        });
+        
+        // ============================================
+        // EXPORTAR PDF
+        // ============================================
+        function exportarPDF() {
+            var { jsPDF } = window.jspdf;
+            var doc = new jsPDF();
+            
+            var dados = selectedEmployee 
+                ? filteredData.filter(function(r) { return (r.Nombre || r.nomeFuncionario) === selectedEmployee; })
+                : filteredData;
+            
+            // Título
+            doc.setFontSize(18);
+            doc.setTextColor(102, 126, 234);
+            doc.text('Relatório de Asistencia - Electrogrupo', 14, 20);
+            
+            // Subtítulo
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            var subtitle = selectedEmployee ? 'Funcionário: ' + selectedEmployee : 'Todos os Funcionários';
+            doc.text(subtitle, 14, 28);
+            
+            // Período
+            var dateStart = document.getElementById('filterDateStart').value;
+            var dateEnd = document.getElementById('filterDateEnd').value;
+            doc.setFontSize(10);
+            doc.text('Período: ' + dateStart + ' a ' + dateEnd, 14, 35);
+            doc.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), 14, 41);
+            
+            // Tabela
+            var tableData = dados.map(function(r) {
+                return [
+                    r.Fecha || r.data || '-',
+                    r.Hora || r.hora || '-',
+                    r.Nombre || r.nomeFuncionario || '-',
+                    r.Tipo || r.tipoRegistro || '-',
+                    r.Obra || r.obra || '-',
+                    r.Observaciones || r.observacoes || '-'
+                ];
+            });
+            
+            doc.autoTable({
+                startY: 48,
+                head: [['Data', 'Hora', 'Nome', 'Tipo', 'Obra', 'Observações']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [102, 126, 234] },
+                styles: { fontSize: 9 },
+                columnStyles: {
+                    0: { cellWidth: 25 },
+                    1: { cellWidth: 20 },
+                    2: { cellWidth: 35 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 30 },
+                    5: { cellWidth: 'auto' }
+                }
+            });
+            
+            // Resumo no final
+            var finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(10);
+            doc.setTextColor(0);
+            doc.text('Total de registros: ' + dados.length, 14, finalY);
+            
+            // Salvar
+            var filename = 'relatorio_' + (selectedEmployee || 'geral').replace(/\s/g, '_') + '_' + dateStart + '.pdf';
+            doc.save(filename);
+        }
+        
+        // ============================================
+        // EXPORTAR CSV
+        // ============================================
+        function exportarCSV() {
+            var dados = selectedEmployee 
+                ? filteredData.filter(function(r) { return (r.Nombre || r.nomeFuncionario) === selectedEmployee; })
+                : filteredData;
+            
+            // Cabeçalho
+            var csv = 'Nome,Data,Hora,Tipo,Obra,Cedula,Cargo,Latitude,Longitude,Observacoes,DeviceID,Foto\n';
+            
+            // Dados
+            dados.forEach(function(r) {
+                var linha = [
+                    '"' + (r.Nombre || r.nomeFuncionario || '').replace(/"/g, '""') + '"',
+                    '"' + (r.Fecha || r.data || '') + '"',
+                    '"' + (r.Hora || r.hora || '') + '"',
+                    '"' + (r.Tipo || r.tipoRegistro || '') + '"',
+                    '"' + (r.Obra || r.obra || '') + '"',
+                    '"' + (r.Cedula || r.cedula || '') + '"',
+                    '"' + (r.Cargo || r.cargo || '') + '"',
+                    '"' + (r.Latitud || r.latitude || '') + '"',
+                    '"' + (r.Longitud || r.longitude || '') + '"',
+                    '"' + (r.Observaciones || r.observacoes || '').replace(/"/g, '""') + '"',
+                    '"' + (r.Dispositivo || r.deviceId || '') + '"',
+                    '"' + (r.Foto || r.foto || '') + '"'
+                ];
+                csv += linha.join(',') + '\n';
+            });
+            
+            // Download
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            var dateStart = document.getElementById('filterDateStart').value;
+            link.href = URL.createObjectURL(blob);
+            link.download = 'relatorio_' + (selectedEmployee || 'geral').replace(/\s/g, '_') + '_' + dateStart + '.csv';
+            link.click();
+        }
+    </script>
+</body>
+</html>
