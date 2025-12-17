@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios RH - Electrogrupo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .header h1 { font-size: 20px; }
+        .header-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .header-links a { background: rgba(255,255,255,0.2); color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-size: 13px; transition: background 0.3s; }
+        .header-links a:hover { background: rgba(255,255,255,0.3); }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 12px 24px; background: white; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: 600; color: #666; transition: all 0.3s; }
+        .tab:hover { background: #e8eaf6; }
+        .tab.active { background: #667eea; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .card h2 { margin-bottom: 15px; color: #333; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .filters-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #555; }
+        .filter-group input, .filter-group select { padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-width: 180px; }
+        .filter-group input:focus, .filter-group select:focus { outline: none; border-color: #667eea; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a6fd6; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-success:hover { background: #43a047; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-info { background: #2196f3; color: white; }
+        .btn-info:hover { background: #1976d2; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .summary-item { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+        .summary-item .number { font-size: 28px; font-weight: 700; color: #667eea; }
+        .summary-item .label { font-size: 11px; color: #666; margin-top: 5px; }
+        .summary-item.success .number { color: #4caf50; }
+        .summary-item.danger .number { color: #f44336; }
+        .summary-item.warning .number { color: #ff9800; }
+        .summary-item.info .number { color: #2196f3; }
+        .employees-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .employee-card { background: #f8f9fa; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; }
+        .employee-card:hover { border-color: #667eea; transform: translateY(-2px); }
+        .employee-card.selected { border-color: #667eea; background: #e8eaf6; }
+        .employee-name { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 10px; }
+        .employee-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; }
+        .employee-summary div { display: flex; justify-content: space-between; }
+        .employee-summary .label { color: #666; }
+        .employee-summary .value { font-weight: 600; }
+        .employee-summary .value.danger { color: #f44336; }
+        .employee-summary .value.success { color: #4caf50; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; position: sticky; top: 0; white-space: nowrap; }
+        tr:hover { background: #f8f9fa; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: white; }
+        .badge-success { background: #4caf50; }
+        .badge-danger { background: #f44336; }
+        .badge-warning { background: #ff9800; }
+        .badge-info { background: #2196f3; }
+        .alert-cell { max-width: 200px; }
+        .alert-item { display: inline-block; margin: 2px; padding: 2px 6px; border-radius: 3px; font-size: 10px; background: #ffebee; color: #c62828; }
+        .alert-item.warning { background: #fff3e0; color: #e65100; }
+        .rules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .rule-box { background: #f8f9fa; border-radius: 8px; padding: 15px; border-left: 4px solid #667eea; }
+        .rule-box h4 { color: #333; margin-bottom: 10px; font-size: 14px; }
+        .rule-box ul { list-style: none; font-size: 13px; color: #666; }
+        .rule-box li { padding: 4px 0; padding-left: 20px; position: relative; }
+        .rule-box li:before { content: "•"; color: #667eea; position: absolute; left: 5px; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .loading-spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .no-data { text-align: center; padding: 40px; color: #999; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal img { max-width: 90%; max-height: 90%; border-radius: 10px; }
+        .modal-close { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
+        .modal-info { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 10px 20px; border-radius: 8px; text-align: center; }
+        .foto-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+        .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .report-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .totals-row { background: #e8eaf6 !important; font-weight: 600; }
+        .totals-row td { border-top: 2px solid #667eea; }
+        
+        /* Mobile Cards para Relatório */
+        .mobile-report-cards { display: none; }
+        .mobile-card { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 12px; border-left: 4px solid #667eea; }
+        .mobile-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e0e0e0; }
+        .mobile-card-date { font-weight: 700; color: #333; font-size: 15px; }
+        .mobile-card-day { background: #667eea; color: white; padding: 3px 10px; border-radius: 4px; font-size: 12px; }
+        .mobile-card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+        .mobile-card-item { display: flex; flex-direction: column; }
+        .mobile-card-item .lbl { color: #888; font-size: 10px; text-transform: uppercase; }
+        .mobile-card-item .val { font-weight: 600; color: #333; }
+        .mobile-card-item .val.success { color: #4caf50; }
+        .mobile-card-item .val.danger { color: #f44336; }
+        .mobile-card-item .val.warning { color: #ff9800; }
+        .mobile-card-item .val.info { color: #2196f3; }
+        .mobile-card-alerts { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; }
+        .mobile-card-totals { background: #667eea; color: white; border-radius: 10px; padding: 15px; margin-top: 15px; }
+        .mobile-card-totals h4 { margin-bottom: 10px; font-size: 14px; }
+        .mobile-card-totals .mobile-card-body { color: white; }
+        .mobile-card-totals .lbl { color: rgba(255,255,255,0.7); }
+        .mobile-card-totals .val { color: white !important; }
+        
+        /* Desktop table */
+        .desktop-table { display: block; }
+        
+        @media (max-width: 768px) { 
+            .header { padding: 10px 15px; } 
+            .header h1 { font-size: 14px; } 
+            .header-links a { padding: 6px 10px; font-size: 11px; }
+            .container { padding: 10px; } 
+            .filters-row { flex-direction: column; } 
+            .filter-group { width: 100%; }
+            .filter-group input, .filter-group select { min-width: 100%; width: 100%; } 
+            .btn { width: 100%; justify-content: center; padding: 12px; }
+            .tab { padding: 8px 12px; font-size: 11px; flex: 1; text-align: center; } 
+            .tabs { gap: 3px; }
+            .card { padding: 15px; }
+            .card h2 { font-size: 15px; }
+            .summary-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .summary-item { padding: 10px 5px; }
+            .summary-item .number { font-size: 20px; }
+            .summary-item .label { font-size: 9px; }
+            .employees-grid { grid-template-columns: 1fr; gap: 10px; }
+            .employee-card { padding: 12px; }
+            .employee-name { font-size: 14px; margin-bottom: 8px; }
+            .employee-summary { font-size: 11px; }
+            .report-header { flex-direction: column; align-items: stretch; }
+            .report-header h2 { font-size: 14px; text-align: center; }
+            .report-actions { flex-direction: column; }
+            .report-actions .btn { width: 100%; }
+            
+            /* Esconder tabela, mostrar cards */
+            .desktop-table { display: none !important; }
+            .mobile-report-cards { display: block !important; }
+            
+            .rules-grid { grid-template-columns: 1fr; }
+            .rule-box { padding: 12px; }
+            .rule-box h4 { font-size: 13px; }
+            .rule-box li { font-size: 12px; }
+        }
+        
+        @media print { .header, .tabs, .card:first-child, .report-actions { display: none !important; } .card { box-shadow: none; break-inside: avoid; } body { background: white; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Relatórios RH - Electrogrupo</h1>
+        <div class="header-links">
+            <a href="index.html">📝 Registrar</a>
+            <a href="mapa.html">🗺️ Mapa</a>
+            <a href="https://docs.google.com/spreadsheets/d/1O5e46G2obLozmqTtQOJir6iO_Hu7fE-pDY-iKy-Tmxw/edit" target="_blank">📋 Planilha</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('analise')">📈 Análise de Horas</button>
+            <button class="tab" onclick="showTab('registros')">📋 Registros</button>
+            <button class="tab" onclick="showTab('regras')">⚙️ Regras</button>
+        </div>
+        <div class="tab-content active" id="tab-analise">
+            <div class="card">
+                <h2>🔍 Filtros</h2>
+                <div class="filters-row">
+                    <div class="filter-group"><label>Data Início</label><input type="date" id="filterDateStart"></div>
+                    <div class="filter-group"><label>Data Fim</label><input type="date" id="filterDateEnd"></div>
+                    <div class="filter-group"><label>Funcionário</label><select id="filterEmployee"><option value="">Todos</option></select></div>
+                    <div class="filter-group"><label>Obra</label><select id="filterObra"><option value="">Todas</option></select></div>
+                    <button class="btn btn-primary" onclick="processarDados()">📊 Analisar</button>
+                    <button class="btn btn-success" onclick="carregarDados()">🔄 Atualizar</button>
+                </div>
+            </div>
+            <div class="card">
+                <h2>📈 Resumo do Período</h2>
+                <div class="summary-grid">
+                    <div class="summary-item"><div class="number" id="sumFuncionarios">0</div><div class="label">Funcionários</div></div>
+                    <div class="summary-item"><div class="number" id="sumDias">0</div><div class="label">Dias Trabalhados</div></div>
+                    <div class="summary-item success"><div class="number" id="sumHorasNormais">0h</div><div class="label">Horas Normais</div></div>
+                    <div class="summary-item info"><div class="number" id="sumHorasExtras">0h</div><div class="label">Horas Extras</div></div>
+                    <div class="summary-item danger"><div class="number" id="sumAtrasos">0</div><div class="label">Atrasos</div></div>
+                    <div class="summary-item warning"><div class="number" id="sumAlertas">0</div><div class="label">Alertas</div></div>
+                </div>
+            </div>
+            <div class="card"><h2>👥 Funcionários</h2><div class="employees-grid" id="employeesGrid"><div class="loading"><div class="loading-spinner"></div><p>Carregando...</p></div></div></div>
+            <div class="card" id="reportCard" style="display: none;">
+                <div class="report-header">
+                    <h2 id="reportTitle">📋 Relatório Detalhado</h2>
+                    <div class="report-actions">
+                        <button class="btn btn-danger" onclick="exportarPDF()">📄 PDF</button>
+                        <button class="btn btn-success" onclick="exportarCSV()">📊 CSV</button>
+                        <button class="btn btn-info" onclick="window.print()">🖨️ Imprimir</button>
+                    </div>
+                </div>
+                <div class="table-container desktop-table">
+                    <table id="reportTable">
+                        <thead><tr><th>Data</th><th>Dia</th><th>Entrada</th><th>Saída</th><th>Pausa</th><th>Retorno</th><th>H. Normais</th><th>H. Extras</th><th>Atraso Ent.</th><th>Atraso Ret.</th><th>Distância</th><th>Alertas</th></tr></thead>
+                        <tbody id="reportBody"></tbody>
+                    </table>
+                </div>
+                <div class="mobile-report-cards" id="mobileReportCards"></div>
+            </div>
+        </div>
+        <div class="tab-content" id="tab-registros">
+            <div class="card">
+                <div class="report-header"><h2>📋 Todos os Registros</h2><div class="report-actions"><button class="btn btn-success" onclick="exportarCSVCompleto()">📊 Exportar CSV Completo</button></div></div>
+                <div class="table-container">
+                    <table><thead><tr><th>Data</th><th>Hora</th><th>Nome</th><th>Tipo</th><th>Obra</th><th>Verificação</th><th>Lat/Lng</th><th>Foto</th></tr></thead><tbody id="allRecordsBody"></tbody></table>
+                </div>
+            </div>
+        </div>
+        <div class="tab-content" id="tab-regras">
+            <div class="card">
+                <h2>⚙️ Regras de Cálculo</h2>
+                <div class="rules-grid">
+                    <div class="rule-box"><h4>📅 Jornada Segunda a Sexta</h4><ul><li>Horário normal: 07:00 às 17:30</li><li>Entrada antes de 07:00 → Não conta extra</li><li>Saída após 17:30 → Hora extra</li><li>Jornada padrão: 10h30min</li></ul></div>
+                    <div class="rule-box"><h4>📅 Jornada Sábado</h4><ul><li>Horário normal: 07:00 às 13:00</li><li>Entrada antes de 07:00 → Não conta extra</li><li>Saída após 13:00 → Hora extra</li><li>Jornada padrão: 6h</li></ul></div>
+                    <div class="rule-box"><h4>⏰ Atrasos</h4><ul><li>Entrada após 07:00 → Atraso na entrada</li><li>Pausa permitida: até 1 hora</li><li>Retorno após 1h de pausa → Atraso no retorno</li><li>Ex: Pausa 12:00, Retorno 13:20 = 20min atraso</li></ul></div>
+                    <div class="rule-box"><h4>📍 Análise Geográfica</h4><ul><li>Calcula distância Entrada ↔ Saída</li><li>Fórmula: Haversine (linha reta)</li><li>Alerta se distância > 10 km</li><li>Detecta registros suspeitos</li></ul></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="photoModal"><span class="modal-close" onclick="fecharModal()">&times;</span><img id="modalImage" src="" alt="Foto"><div class="modal-info" id="modalInfo"></div></div>
+    <script>
+        var GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbytkz2c_j-vDVUdyts5iqxeahKcHFN2HTvMpDj8VyF-UXGM4nbOBtXB9Xr0TnxEXj7F/exec';
+        var REGRAS = { HORA_INICIO: 7 * 60, HORA_FIM_SEMANA: 17 * 60 + 30, HORA_FIM_SABADO: 13 * 60, PAUSA_MAXIMA: 60, DISTANCIA_ALERTA: 10 };
+        var allData = [], processedData = {}, selectedEmployee = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var today = new Date();
+            var firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('filterDateStart').value = formatDateISO(firstDay);
+            document.getElementById('filterDateEnd').value = formatDateISO(today);
+            carregarDados();
+        });
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function formatDateISO(date) { return date.toISOString().split('T')[0]; }
+        function parseDate(dateStr) { if (!dateStr) return null; var parts = dateStr.split('/'); if (parts.length !== 3) return null; return new Date(parts[2], parts[1] - 1, parts[0]); }
+        function parseTime(timeStr) { if (!timeStr) return null; var parts = timeStr.split(':'); return parseInt(parts[0]) * 60 + parseInt(parts[1]); }
+        function formatMinutes(mins) { if (mins === null || mins === undefined || isNaN(mins)) return '-'; var h = Math.floor(Math.abs(mins) / 60); var m = Math.abs(mins) % 60; return h + 'h' + (m > 0 ? m.toString().padStart(2, '0') + 'm' : ''); }
+        function getDayOfWeek(date) { return date.getDay(); }
+        function getDayName(date) { var days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']; return days[date.getDay()]; }
+        function toRad(deg) { return deg * (Math.PI / 180); }
+
+        function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+            if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+            var R = 6371, dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function carregarDados() {
+            document.getElementById('employeesGrid').innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Carregando...</p></div>';
+            fetch(GOOGLE_SCRIPT_URL).then(function(r) { return r.json(); }).then(function(data) {
+                allData = data.filter(function(r) { var n = r.Nombre || r.nomeFuncionario || ''; var f = r.Fecha || r.data || ''; return n !== '** PRUEBA DE CONEXIÓN **' && f !== 'TEST' && n !== ''; });
+                preencherFiltros(); preencherTabelaRegistros(); processarDados();
+            }).catch(function(e) { document.getElementById('employeesGrid').innerHTML = '<div class="no-data"><h3>❌ Erro</h3><p>' + e.message + '</p></div>'; });
+        }
+
+        function preencherFiltros() {
+            var emps = [], obras = [];
+            allData.forEach(function(r) { var n = r.Nombre || r.nomeFuncionario || ''; var o = r.Obra || r.obra || ''; if (n && emps.indexOf(n) === -1) emps.push(n); if (o && obras.indexOf(o) === -1) obras.push(o); });
+            emps.sort(); obras.sort();
+            var se = document.getElementById('filterEmployee'); se.innerHTML = '<option value="">Todos</option>'; emps.forEach(function(e) { se.innerHTML += '<option value="' + e + '">' + e + '</option>'; });
+            var so = document.getElementById('filterObra'); so.innerHTML = '<option value="">Todas</option>'; obras.forEach(function(o) { so.innerHTML += '<option value="' + o + '">' + o + '</option>'; });
+        }
+
+        function preencherTabelaRegistros() {
+            var tbody = document.getElementById('allRecordsBody'), html = '', ds = document.getElementById('filterDateStart').value, de = document.getElementById('filterDateEnd').value, ef = document.getElementById('filterEmployee').value;
+            var filtered = allData.filter(function(r) { var f = r.Fecha || r.data || '', n = r.Nombre || r.nomeFuncionario || '', fi = ''; if (f && f.includes('/')) { var p = f.split('/'); fi = p[2] + '-' + p[1] + '-' + p[0]; } if (ds && fi < ds) return false; if (de && fi > de) return false; if (ef && n !== ef) return false; return true; });
+            filtered.forEach(function(r, i) { 
+                var foto = r.Foto || r.foto || '', fh = foto && foto.startsWith('data:image') ? '<img src="' + foto + '" class="foto-thumb" onclick="abrirFotoRegistro(' + i + ')">' : '-';
+                var verif = getVerificacionStatus(r);
+                html += '<tr><td>' + (r.Fecha || r.data || '-') + '</td><td>' + (r.Hora || r.hora || '-') + '</td><td>' + (r.Nombre || r.nomeFuncionario || '-') + '</td><td>' + (r.Tipo || r.tipoRegistro || '-') + '</td><td>' + (r.Obra || r.obra || '-') + '</td><td>' + verif + '</td><td style="font-size:10px;">' + (r.Latitud || r.latitude || '-') + ', ' + (r.Longitud || r.longitude || '-') + '</td><td>' + fh + '</td></tr>'; 
+            });
+            tbody.innerHTML = html || '<tr><td colspan="8" class="no-data">Nenhum registro</td></tr>';
+        }
+        
+        function getVerificacionStatus(r) {
+            var fv = r.faceVerified || r.VerificacionFacial;
+            var fvo = r.faceVerifiedOffline || r.VerificacionOffline;
+            if (fv === undefined && fvo === undefined) return '<span style="color:#999;">-</span>';
+            if (fv === true || fv === 'true' || fv === 'Verificado') return '<span class="badge badge-success">✓ Verificado</span>';
+            if (fvo === true || fvo === 'true' || fv === 'Offline') return '<span class="badge badge-warning">⚠ Offline</span>';
+            if (fv === false || fv === 'false' || fv === 'No Verificado') return '<span class="badge badge-danger">✗ No verif.</span>';
+            return '<span style="color:#999;">-</span>';
+        }
+
+        function organizarRegistros(registros) {
+            var org = {};
+            registros.forEach(function(r) { var n = r.Nombre || r.nomeFuncionario || 'Desc', f = r.Fecha || r.data || '', h = r.Hora || r.hora || '', t = (r.Tipo || r.tipoRegistro || '').toLowerCase();
+                if (!org[n]) org[n] = {}; if (!org[n][f]) org[n][f] = { entrada: null, saida: null, pausa: null, retorno: null, registros: [] };
+                var reg = { hora: h, horaMin: parseTime(h), tipo: t, lat: parseFloat(r.Latitud || r.latitude || 0), lng: parseFloat(r.Longitud || r.longitude || 0) };
+                org[n][f].registros.push(reg);
+                if (t.includes('entrada') && !org[n][f].entrada) org[n][f].entrada = reg;
+                else if ((t.includes('salida') || t.includes('saída')) && !org[n][f].saida) org[n][f].saida = reg;
+                else if (t.includes('pausa') && !org[n][f].pausa) org[n][f].pausa = reg;
+                else if (t.includes('retorno') && !org[n][f].retorno) org[n][f].retorno = reg;
+            });
+            return org;
+        }
+
+        function calcularHorasNormais(ent, sai, dia) { if (!ent || !sai) return 0; var ini = Math.max(ent, REGRAS.HORA_INICIO), fim = dia === 6 ? REGRAS.HORA_FIM_SABADO : REGRAS.HORA_FIM_SEMANA, f = Math.min(sai, fim); return f <= ini ? 0 : f - ini; }
+        function calcularHorasExtras(sai, dia) { if (!sai) return 0; var fim = dia === 6 ? REGRAS.HORA_FIM_SABADO : REGRAS.HORA_FIM_SEMANA; return sai > fim ? sai - fim : 0; }
+        function calcularAtrasoEntrada(ent) { return (!ent || ent <= REGRAS.HORA_INICIO) ? 0 : ent - REGRAS.HORA_INICIO; }
+        function calcularAtrasoRetorno(pau, ret) { if (!pau || !ret) return 0; var dur = ret - pau; return dur > REGRAS.PAUSA_MAXIMA ? dur - REGRAS.PAUSA_MAXIMA : 0; }
+
+        function gerarAlertas(dia) {
+            var al = [];
+            if (dia.distancia !== null && dia.distancia > REGRAS.DISTANCIA_ALERTA) al.push({ tipo: 'danger', msg: 'Distância: ' + dia.distancia.toFixed(1) + 'km' });
+            if (dia.atrasoEntrada > 0) al.push({ tipo: 'warning', msg: 'Atraso ent: ' + dia.atrasoEntrada + 'min' });
+            if (dia.atrasoRetorno > 0) al.push({ tipo: 'warning', msg: 'Atraso ret: ' + dia.atrasoRetorno + 'min' });
+            if (!dia.entrada) al.push({ tipo: 'danger', msg: 'Sem entrada' });
+            if (!dia.saida) al.push({ tipo: 'danger', msg: 'Sem saída' });
+            return al;
+        }
+
+        function processarDados() {
+            var ds = document.getElementById('filterDateStart').value, de = document.getElementById('filterDateEnd').value, ef = document.getElementById('filterEmployee').value, of = document.getElementById('filterObra').value;
+            var filtered = allData.filter(function(r) { var f = r.Fecha || r.data || '', n = r.Nombre || r.nomeFuncionario || '', o = r.Obra || r.obra || '', fi = ''; if (f && f.includes('/')) { var p = f.split('/'); fi = p[2] + '-' + p[1] + '-' + p[0]; } if (ds && fi < ds) return false; if (de && fi > de) return false; if (ef && n !== ef) return false; if (of && o !== of) return false; return true; });
+            var org = organizarRegistros(filtered); processedData = {}; var tot = { func: 0, dias: 0, hn: 0, he: 0, at: 0, al: 0 };
+
+            Object.keys(org).forEach(function(nome) {
+                processedData[nome] = { dias: [], totais: { horasNormais: 0, horasExtras: 0, atrasos: 0, alertas: 0 } };
+                Object.keys(org[nome]).sort().forEach(function(fecha) {
+                    var d = org[nome][fecha], date = parseDate(fecha), dia = date ? getDayOfWeek(date) : 1; if (dia === 0) return;
+                    var eM = d.entrada ? d.entrada.horaMin : null, sM = d.saida ? d.saida.horaMin : null, pM = d.pausa ? d.pausa.horaMin : null, rM = d.retorno ? d.retorno.horaMin : null;
+                    var hn = calcularHorasNormais(eM, sM, dia), he = calcularHorasExtras(sM, dia);
+                    if (pM && rM) { var dp = Math.min(rM - pM, REGRAS.PAUSA_MAXIMA); hn = Math.max(0, hn - dp); }
+                    var ae = calcularAtrasoEntrada(eM), ar = calcularAtrasoRetorno(pM, rM);
+                    var dist = (d.entrada && d.saida) ? calcularDistanciaHaversine(d.entrada.lat, d.entrada.lng, d.saida.lat, d.saida.lng) : null;
+                    var dp = { fecha: fecha, diaSemana: dia, diaNome: date ? getDayName(date) : '-', entrada: d.entrada ? d.entrada.hora : null, saida: d.saida ? d.saida.hora : null, pausa: d.pausa ? d.pausa.hora : null, retorno: d.retorno ? d.retorno.hora : null, horasNormais: hn, horasExtras: he, atrasoEntrada: ae, atrasoRetorno: ar, distancia: dist, alertas: [] };
+                    dp.alertas = gerarAlertas(dp);
+                    processedData[nome].totais.horasNormais += hn; processedData[nome].totais.horasExtras += he;
+                    processedData[nome].totais.atrasos += (ae > 0 ? 1 : 0) + (ar > 0 ? 1 : 0); processedData[nome].totais.alertas += dp.alertas.length;
+                    processedData[nome].dias.push(dp);
+                });
+                if (processedData[nome].dias.length > 0) { tot.func++; tot.dias += processedData[nome].dias.length; tot.hn += processedData[nome].totais.horasNormais; tot.he += processedData[nome].totais.horasExtras; tot.at += processedData[nome].totais.atrasos; tot.al += processedData[nome].totais.alertas; }
+            });
+
+            document.getElementById('sumFuncionarios').textContent = tot.func; document.getElementById('sumDias').textContent = tot.dias;
+            document.getElementById('sumHorasNormais').textContent = formatMinutes(tot.hn); document.getElementById('sumHorasExtras').textContent = formatMinutes(tot.he);
+            document.getElementById('sumAtrasos').textContent = tot.at; document.getElementById('sumAlertas').textContent = tot.al;
+            atualizarGrid(); preencherTabelaRegistros(); if (selectedEmployee && processedData[selectedEmployee]) mostrarRelatorio(selectedEmployee);
+        }
+
+        function atualizarGrid() {
+            var c = document.getElementById('employeesGrid'), nomes = Object.keys(processedData).sort();
+            if (nomes.length === 0) { c.innerHTML = '<div class="no-data"><h3>📭 Nenhum registro</h3></div>'; document.getElementById('reportCard').style.display = 'none'; return; }
+            var html = ''; nomes.forEach(function(n) { var d = processedData[n], sel = selectedEmployee === n ? 'selected' : '';
+                html += '<div class="employee-card ' + sel + '" onclick="mostrarRelatorio(\'' + n.replace(/'/g, "\\'") + '\')"><div class="employee-name">' + n + '</div><div class="employee-summary">';
+                html += '<div><span class="label">Dias:</span> <span class="value">' + d.dias.length + '</span></div>';
+                html += '<div><span class="label">H.Normais:</span> <span class="value success">' + formatMinutes(d.totais.horasNormais) + '</span></div>';
+                html += '<div><span class="label">H.Extras:</span> <span class="value">' + formatMinutes(d.totais.horasExtras) + '</span></div>';
+                html += '<div><span class="label">Atrasos:</span> <span class="value ' + (d.totais.atrasos > 0 ? 'danger' : '') + '">' + d.totais.atrasos + '</span></div></div></div>'; });
+            c.innerHTML = html;
+        }
+
+        function mostrarRelatorio(nome) {
+            selectedEmployee = nome; atualizarGrid(); var d = processedData[nome]; if (!d) return;
+            document.getElementById('reportTitle').textContent = '📋 ' + nome;
+            var tb = document.getElementById('reportBody'), html = '', thn = 0, the = 0, tae = 0, tar = 0;
+            var mobileHtml = '';
+            
+            d.dias.forEach(function(dia) { 
+                thn += dia.horasNormais; the += dia.horasExtras; tae += dia.atrasoEntrada; tar += dia.atrasoRetorno;
+                var ah = ''; dia.alertas.forEach(function(a) { ah += '<span class="alert-item ' + (a.tipo === 'warning' ? 'warning' : '') + '">' + a.msg + '</span>'; });
+                
+                // Desktop table row
+                html += '<tr><td>' + dia.fecha + '</td><td>' + dia.diaNome + '</td><td>' + (dia.entrada || '<span class="badge badge-danger">-</span>') + '</td><td>' + (dia.saida || '<span class="badge badge-danger">-</span>') + '</td><td>' + (dia.pausa || '-') + '</td><td>' + (dia.retorno || '-') + '</td>';
+                html += '<td><span class="badge badge-success">' + formatMinutes(dia.horasNormais) + '</span></td><td>' + (dia.horasExtras > 0 ? '<span class="badge badge-info">' + formatMinutes(dia.horasExtras) + '</span>' : '-') + '</td>';
+                html += '<td>' + (dia.atrasoEntrada > 0 ? '<span class="badge badge-warning">' + dia.atrasoEntrada + 'min</span>' : '-') + '</td><td>' + (dia.atrasoRetorno > 0 ? '<span class="badge badge-warning">' + dia.atrasoRetorno + 'min</span>' : '-') + '</td>';
+                html += '<td>' + (dia.distancia !== null ? dia.distancia.toFixed(2) + ' km' : '-') + '</td><td class="alert-cell">' + (ah || '-') + '</td></tr>';
+                
+                // Mobile card
+                mobileHtml += '<div class="mobile-card">';
+                mobileHtml += '<div class="mobile-card-header"><span class="mobile-card-date">' + dia.fecha + '</span><span class="mobile-card-day">' + dia.diaNome + '</span></div>';
+                mobileHtml += '<div class="mobile-card-body">';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">Entrada</span><span class="val">' + (dia.entrada || '-') + '</span></div>';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">Saída</span><span class="val">' + (dia.saida || '-') + '</span></div>';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">Pausa</span><span class="val">' + (dia.pausa || '-') + '</span></div>';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">Retorno</span><span class="val">' + (dia.retorno || '-') + '</span></div>';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">H. Normais</span><span class="val success">' + formatMinutes(dia.horasNormais) + '</span></div>';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">H. Extras</span><span class="val info">' + (dia.horasExtras > 0 ? formatMinutes(dia.horasExtras) : '-') + '</span></div>';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">Atraso Ent.</span><span class="val ' + (dia.atrasoEntrada > 0 ? 'warning' : '') + '">' + (dia.atrasoEntrada > 0 ? dia.atrasoEntrada + 'min' : '-') + '</span></div>';
+                mobileHtml += '<div class="mobile-card-item"><span class="lbl">Atraso Ret.</span><span class="val ' + (dia.atrasoRetorno > 0 ? 'warning' : '') + '">' + (dia.atrasoRetorno > 0 ? dia.atrasoRetorno + 'min' : '-') + '</span></div>';
+                mobileHtml += '</div>';
+                if (dia.alertas.length > 0) { mobileHtml += '<div class="mobile-card-alerts">' + ah + '</div>'; }
+                mobileHtml += '</div>';
+            });
+            
+            html += '<tr class="totals-row"><td colspan="6"><strong>TOTAIS</strong></td><td><strong>' + formatMinutes(thn) + '</strong></td><td><strong>' + formatMinutes(the) + '</strong></td><td><strong>' + tae + 'min</strong></td><td><strong>' + tar + 'min</strong></td><td colspan="2"></td></tr>';
+            
+            // Mobile totals card
+            mobileHtml += '<div class="mobile-card-totals"><h4>📊 TOTAIS</h4><div class="mobile-card-body">';
+            mobileHtml += '<div class="mobile-card-item"><span class="lbl">H. Normais</span><span class="val">' + formatMinutes(thn) + '</span></div>';
+            mobileHtml += '<div class="mobile-card-item"><span class="lbl">H. Extras</span><span class="val">' + formatMinutes(the) + '</span></div>';
+            mobileHtml += '<div class="mobile-card-item"><span class="lbl">Atraso Ent.</span><span class="val">' + tae + 'min</span></div>';
+            mobileHtml += '<div class="mobile-card-item"><span class="lbl">Atraso Ret.</span><span class="val">' + tar + 'min</span></div>';
+            mobileHtml += '</div></div>';
+            
+            tb.innerHTML = html;
+            
+            // Inserir cards mobile
+            var mobileContainer = document.getElementById('mobileReportCards');
+            if (mobileContainer) { mobileContainer.innerHTML = mobileHtml; }
+            
+            document.getElementById('reportCard').style.display = 'block'; 
+            document.getElementById('reportCard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function exportarPDF() {
+            if (!selectedEmployee || !processedData[selectedEmployee]) { alert('Selecione um funcionário'); return; }
+            var { jsPDF } = window.jspdf, doc = new jsPDF('l'), d = processedData[selectedEmployee];
+            doc.setFontSize(18); doc.setTextColor(102, 126, 234); doc.text('Relatório de Horas - Electrogrupo', 14, 15);
+            doc.setFontSize(12); doc.setTextColor(100); doc.text('Funcionário: ' + selectedEmployee, 14, 23);
+            var ds = document.getElementById('filterDateStart').value, de = document.getElementById('filterDateEnd').value;
+            doc.setFontSize(10); doc.text('Período: ' + ds + ' a ' + de, 14, 30); doc.text('Gerado: ' + new Date().toLocaleString('pt-BR'), 14, 36);
+            doc.setFontSize(11); doc.setTextColor(0); doc.text('Resumo: ' + d.dias.length + ' dias | H.Normais: ' + formatMinutes(d.totais.horasNormais) + ' | H.Extras: ' + formatMinutes(d.totais.horasExtras) + ' | Atrasos: ' + d.totais.atrasos, 14, 44);
+            var td = d.dias.map(function(dia) { var al = dia.alertas.map(function(a) { return a.msg; }).join('; '); return [dia.fecha, dia.diaNome, dia.entrada || '-', dia.saida || '-', dia.pausa || '-', dia.retorno || '-', formatMinutes(dia.horasNormais), formatMinutes(dia.horasExtras), dia.atrasoEntrada > 0 ? dia.atrasoEntrada + 'min' : '-', dia.atrasoRetorno > 0 ? dia.atrasoRetorno + 'min' : '-', dia.distancia !== null ? dia.distancia.toFixed(1) + 'km' : '-', al || '-']; });
+            doc.autoTable({ startY: 50, head: [['Data', 'Dia', 'Entrada', 'Saída', 'Pausa', 'Retorno', 'H.Norm', 'H.Extra', 'Atr.Ent', 'Atr.Ret', 'Dist.', 'Alertas']], body: td, theme: 'striped', headStyles: { fillColor: [102, 126, 234], fontSize: 8 }, styles: { fontSize: 7 }, columnStyles: { 11: { cellWidth: 40 } } });
+            doc.save('relatorio_' + selectedEmployee.replace(/\s/g, '_') + '_' + ds + '.pdf');
+        }
+
+        function exportarCSV() {
+            if (!selectedEmployee || !processedData[selectedEmployee]) { alert('Selecione um funcionário'); return; }
+            var d = processedData[selectedEmployee], csv = 'Nome,Data,Dia,Entrada,Saida,Pausa,Retorno,Horas_Normais,Horas_Extras,Atraso_Entrada,Atraso_Retorno,Distancia_KM,Alertas\n';
+            d.dias.forEach(function(dia) { var al = dia.alertas.map(function(a) { return a.msg; }).join('; '); csv += ['"' + selectedEmployee + '"', dia.fecha, dia.diaNome, dia.entrada || '', dia.saida || '', dia.pausa || '', dia.retorno || '', (dia.horasNormais / 60).toFixed(2), (dia.horasExtras / 60).toFixed(2), dia.atrasoEntrada, dia.atrasoRetorno, dia.distancia !== null ? dia.distancia.toFixed(2) : '', '"' + al + '"'].join(',') + '\n'; });
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }), link = document.createElement('a');
+            link.href = URL.createObjectURL(blob); link.download = 'relatorio_' + selectedEmployee.replace(/\s/g, '_') + '.csv'; link.click();
+        }
+
+        function exportarCSVCompleto() {
+            var csv = 'Nome,Data,Hora,Tipo,Obra,Verificacao_Facial,Cedula,Cargo,Latitude,Longitude,Observacoes,DeviceID\n', ds = document.getElementById('filterDateStart').value, de = document.getElementById('filterDateEnd').value, ef = document.getElementById('filterEmployee').value;
+            allData.forEach(function(r) { var f = r.Fecha || r.data || '', n = r.Nombre || r.nomeFuncionario || '', fi = ''; if (f && f.includes('/')) { var p = f.split('/'); fi = p[2] + '-' + p[1] + '-' + p[0]; } if (ds && fi < ds) return; if (de && fi > de) return; if (ef && n !== ef) return;
+                var verifStatus = getVerificacionStatusText(r);
+                csv += ['"' + n + '"', '"' + f + '"', '"' + (r.Hora || r.hora || '') + '"', '"' + (r.Tipo || r.tipoRegistro || '') + '"', '"' + (r.Obra || r.obra || '') + '"', '"' + verifStatus + '"', '"' + (r.Cedula || r.cedula || '') + '"', '"' + (r.Cargo || r.cargo || '') + '"', r.Latitud || r.latitude || '', r.Longitud || r.longitude || '', '"' + (r.Observaciones || r.observacoes || '').replace(/"/g, '""') + '"', '"' + (r.Dispositivo || r.deviceId || '') + '"'].join(',') + '\n'; });
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }), link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'registros_completos.csv'; link.click();
+        }
+        
+        function getVerificacionStatusText(r) {
+            var fv = r.faceVerified || r.VerificacionFacial;
+            var fvo = r.faceVerifiedOffline || r.VerificacionOffline;
+            if (fv === undefined && fvo === undefined) return '-';
+            if (fv === true || fv === 'true' || fv === 'Verificado') return 'Verificado';
+            if (fvo === true || fvo === 'true' || fv === 'Offline') return 'Offline';
+            if (fv === false || fv === 'false' || fv === 'No Verificado') return 'No Verificado';
+            return '-';
+        }
+
+        function abrirFotoRegistro(i) { var ds = document.getElementById('filterDateStart').value, de = document.getElementById('filterDateEnd').value, ef = document.getElementById('filterEmployee').value;
+            var filtered = allData.filter(function(r) { var f = r.Fecha || r.data || '', n = r.Nombre || r.nomeFuncionario || '', fi = ''; if (f && f.includes('/')) { var p = f.split('/'); fi = p[2] + '-' + p[1] + '-' + p[0]; } if (ds && fi < ds) return false; if (de && fi > de) return false; if (ef && n !== ef) return false; return true; });
+            var r = filtered[i], foto = r.Foto || r.foto || '';
+            if (foto) { document.getElementById('modalImage').src = foto; document.getElementById('modalInfo').innerHTML = '<strong>' + (r.Nombre || r.nomeFuncionario) + '</strong><br>' + (r.Fecha || r.data) + ' ' + (r.Hora || r.hora) + ' - ' + (r.Tipo || r.tipoRegistro); document.getElementById('photoModal').classList.add('active'); }
+        }
+        function fecharModal() { document.getElementById('photoModal').classList.remove('active'); }
+        document.getElementById('photoModal').addEventListener('click', function(e) { if (e.target === this) fecharModal(); });
+    </script>
+</body>
+</html>
