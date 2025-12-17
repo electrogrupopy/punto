@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Registro de Asistencia en Obra - Electrogrupo</title>
+    <!-- Face Recognition Library -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { background: white; padding: 20px; border-radius: 10px 10px 0 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; border-bottom: 4px solid #667eea; }
+        .header h1 { color: #333; font-size: 24px; margin-bottom: 5px; }
+        .header p { color: #666; font-size: 14px; }
+        .main-content { background: white; padding: 30px 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 14px; }
+        input[type="text"], select, textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 16px; font-family: inherit; transition: border-color 0.3s; -webkit-appearance: none; appearance: none; }
+        input[type="text"]:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; }
+        textarea { resize: vertical; min-height: 80px; }
+        .location-info { background: #f5f5f5; padding: 15px; border-radius: 6px; font-size: 13px; color: #666; margin-bottom: 15px; border-left: 4px solid #667eea; min-height: 60px; }
+        .location-info.loading { color: #667eea; }
+        .location-info.success { background: #e8f5e9; border-left-color: #4caf50; color: #2e7d32; }
+        .location-info.error { background: #ffebee; border-left-color: #f44336; color: #c62828; }
+        .photo-section { border: 2px dashed #667eea; border-radius: 6px; padding: 20px; text-align: center; margin-bottom: 20px; background: #f9f9f9; }
+        .photo-section input[type="file"] { display: none; }
+        .photo-upload-btn { display: inline-block; padding: 12px 24px; background: #667eea; color: white; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; font-size: 14px; -webkit-tap-highlight-color: transparent; }
+        .photo-preview { margin-top: 15px; position: relative; display: inline-block; }
+        .photo-preview img { max-width: 100%; max-height: 250px; border-radius: 6px; }
+        .photo-remove { position: absolute; top: -10px; right: -10px; background: #f44336; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 18px; }
+        .photo-info { font-size: 11px; color: #666; margin-top: 8px; }
+        .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        button { padding: 14px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .btn-submit { background: #4caf50; color: white; grid-column: 1 / -1; min-height: 50px; font-size: 16px; }
+        .btn-submit:active { background: #388e3c; }
+        .btn-report { background: #2196f3; color: white; }
+        .btn-clear { background: #ff9800; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .success-message { background: #e8f5e9; border: 2px solid #4caf50; color: #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: none; }
+        .success-message.active { display: block; }
+        .error-message { background: #ffebee; border: 2px solid #f44336; color: #c62828; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: none; }
+        .error-message.active { display: block; }
+        .time-display { font-weight: 600; color: #667eea; margin-top: 5px; }
+        .field-error { border-color: #f44336 !important; background: #fff5f5 !important; }
+        .field-error-msg { color: #f44336; font-size: 12px; margin-top: 4px; display: none; }
+        .field-error-msg.active { display: block; }
+        
+        .storage-info { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 12px; }
+        .storage-bar { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 5px; }
+        .storage-bar-fill { height: 100%; background: #4caf50; transition: width 0.3s; }
+        .storage-bar-fill.warning { background: #ff9800; }
+        .storage-bar-fill.danger { background: #f44336; }
+        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
+        .modal.active { display: block; }
+        .modal-content { background-color: white; margin: 10px auto; padding: 15px; border-radius: 10px; width: 95%; max-width: 700px; max-height: none; overflow-y: visible; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        .modal-header h2 { font-size: 16px; }
+        .modal-close { background: #f44336; border: none; font-size: 20px; cursor: pointer; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .report-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .report-table th, .report-table td { padding: 6px 4px; text-align: left; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+        .report-table th { background: #667eea; color: white; font-size: 10px; position: sticky; top: 0; }
+        .report-photo { max-width: 45px; max-height: 45px; cursor: pointer; border-radius: 4px; }
+        .export-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-export { padding: 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        
+        /* Cards view para mobile */
+        .report-cards { display: none; }
+        .report-card-item { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 4px solid #667eea; }
+        .report-card-item .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .report-card-item .card-name { font-weight: 600; color: #333; font-size: 14px; }
+        .report-card-item .card-type { padding: 3px 8px; border-radius: 4px; font-size: 11px; color: white; background: #667eea; }
+        .report-card-item .card-type.entrada { background: #4caf50; }
+        .report-card-item .card-type.salida { background: #f44336; }
+        .report-card-item .card-type.pausa { background: #ff9800; }
+        .report-card-item .card-type.retorno { background: #2196f3; }
+        .report-card-item .card-details { font-size: 12px; color: #666; }
+        .report-card-item .card-details div { margin: 4px 0; }
+        .report-card-item .card-photo { margin-top: 8px; }
+        .report-card-item .card-photo img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+        
+        @media (max-width: 600px) {
+            .report-table-container { display: none; }
+            .report-cards { display: block; }
+            .modal-content { margin: 5px; width: calc(100% - 10px); padding: 12px; }
+            .modal-header h2 { font-size: 14px; }
+            .export-buttons { grid-template-columns: 1fr; }
+        }
+        .btn-export { padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        
+        #manualLocationSection { display: none; margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 6px; }
+        #manualLocationSection input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-top: 5px; }
+        
+        .photo-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center; }
+        .photo-modal.active { display: flex; }
+        .photo-modal img { max-width: 90%; max-height: 90%; }
+
+        #debugConsole { display: none; position: fixed; bottom: 0; left: 0; right: 0; max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.95); color: #0f0; font-family: monospace; font-size: 10px; padding: 10px; z-index: 9999; }
+        #debugConsole.active { display: block; }
+        .debug-toggle { position: fixed; bottom: 5px; right: 5px; background: #333; color: #0f0; border: none; padding: 5px 10px; font-size: 10px; border-radius: 4px; opacity: 0.7; z-index: 9998; }
+
+        /* Face Recognition Styles */
+        .face-status { 
+            padding: 10px 15px; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            margin-top: 10px;
+            display: none;
+        }
+        .face-status.active { display: block; }
+        .face-status.loading { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+        .face-status.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .face-status.error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .face-status.warning { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+        
+        .face-match-result {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .face-match-result img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #4caf50;
+        }
+        .face-match-result.no-match img {
+            border-color: #f44336;
+        }
+        .face-match-info { flex: 1; }
+        .face-match-info .name { font-weight: 600; font-size: 16px; color: #333; }
+        .face-match-info .score { font-size: 12px; color: #666; }
+        .face-match-info .score.high { color: #4caf50; }
+        .face-match-info .score.medium { color: #ff9800; }
+        .face-match-info .score.low { color: #f44336; }
+        
+        .face-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            flex-direction: column;
+            color: white;
+        }
+        .face-loading-overlay.active { display: flex; }
+        .face-loading-overlay .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Autocomplete Styles */
+        .autocomplete-container { position: relative; }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .autocomplete-list.active { display: block; }
+        .autocomplete-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover, .autocomplete-item.selected { background: #e8eaf6; }
+        .autocomplete-item .name { font-weight: 600; color: #333; }
+        .autocomplete-item .details { font-size: 12px; color: #666; margin-top: 3px; }
+        .autocomplete-loading { padding: 15px; text-align: center; color: #666; font-size: 13px; }
+
+        @media (max-width: 600px) {
+            .button-group { grid-template-columns: 1fr; }
+            .export-buttons { grid-template-columns: 1fr; }
+            body { padding: 10px; }
+            .main-content { padding: 20px 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header" id="headerArea">
+            <h1>📍 Registro de Asistencia en Obra</h1>
+            <p>Electrogrupo S.A.C.I.</p>
+        </div>
+
+        <div class="main-content">
+            <!-- GitHub Status Indicator -->
+            <div style="background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div id="githubStatusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #4caf50;"></div>
+                    <span id="githubStatusText">Google Sheets: Configurado ✓</span>
+                </div>
+                <span id="pendingCount" style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; display: none;">0 pendiente(s)</span>
+            </div>
+
+            <!-- Storage Info -->
+            <div class="storage-info" id="storageInfo">
+                <strong>💾 Almacenamiento:</strong> <span id="storageUsed">Calculando...</span>
+                <div class="storage-bar"><div class="storage-bar-fill" id="storageBar" style="width: 0%"></div></div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between;">
+                    <span id="storageCount">0 registros</span>
+                    <button type="button" onclick="clearOldRecords()" style="background: #ff9800; color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">🗑️ Limpiar Antiguos</button>
+                </div>
+            </div>
+
+            <div style="background: #e8f5e9; border: 1px solid #81c784; border-radius: 6px; padding: 12px; margin-bottom: 15px; font-size: 12px;">
+                <strong style="color: #2e7d32;">📱 Dispositivo:</strong> 
+                <span id="deviceInfo" style="color: #558b2f; font-family: monospace;">---</span>
+            </div>
+
+            <div class="success-message" id="successMessage">✓ ¡Asistencia registrada con éxito!</div>
+            <div class="error-message" id="errorMessage"></div>
+
+            <div id="formContainer">
+                <div class="form-group">
+                    <label>Fecha del Registro</label>
+                    <input type="text" id="dataRegistro" readonly style="background: #f5f5f5;">
+                    <div class="time-display" id="timeDisplay"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre del Empleado *</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="nomeFuncionario" placeholder="Ingrese el nombre completo" autocomplete="off">
+                        <div class="autocomplete-list" id="autocompleteList"></div>
+                    </div>
+                    <div class="field-error-msg" id="err_nomeFuncionario">Campo requerido</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Cédula de Identidad *</label>
+                    <input type="text" id="cedula" placeholder="Ingrese número de cédula" inputmode="numeric">
+                    <div class="field-error-msg" id="err_cedula">Campo requerido</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Cargo/Función *</label>
+                    <select id="cargo">
+                        <option value="">Seleccione una opción</option>
+                        <option value="Ingeniero">Ingeniero</option>
+                        <option value="Técnico">Técnico</option>
+                        <option value="Plomero">Plomero</option>
+                        <option value="Electricista">Electricista</option>
+                        <option value="Peón">Peón</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Operador de Máquina">Operador de Máquina</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                    <div class="field-error-msg" id="err_cargo">Seleccione una opción</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Cliente/Ciudad *</label>
+                    <input type="text" id="obra" placeholder="Nombre del cliente o ciudad">
+                    <div class="field-error-msg" id="err_obra">Campo requerido</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Geolocalización *</label>
+                    <button type="button" id="captureLocation" class="photo-upload-btn">📍 Capturar Ubicación</button>
+                    <div class="location-info" id="locationInfo">Ubicación no capturada</div>
+                    <div class="field-error-msg" id="err_location">Debe capturar ubicación</div>
+                    <div id="manualLocationSection">
+                        <p style="margin-bottom: 10px; color: #856404; font-size: 13px; font-weight: 600;">📋 Ingrese manualmente:</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 12px;">Latitud</label>
+                                <input type="text" id="latManual" placeholder="-25.2637" inputmode="decimal">
+                            </div>
+                            <div>
+                                <label style="font-size: 12px;">Longitud</label>
+                                <input type="text" id="lngManual" placeholder="-57.5759" inputmode="decimal">
+                            </div>
+                        </div>
+                        <button type="button" id="saveManualLoc" class="photo-upload-btn" style="width: 100%; margin-top: 10px; background: #ffc107; color: #333;">✓ Guardar Ubicación Manual</button>
+                    </div>
+                    <input type="hidden" id="latitude" value="">
+                    <input type="hidden" id="longitude" value="">
+                    <input type="hidden" id="accuracy" value="">
+                </div>
+
+                <div class="form-group">
+                    <label>Foto de Prueba * (con verificación facial)</label>
+                    <div class="photo-section" id="photoSection">
+                        <input type="file" id="fotoInput" accept="image/*" capture="environment">
+                        <label for="fotoInput" class="photo-upload-btn">📷 Capturar Foto</label>
+                        <p style="margin-top: 10px; color: #999; font-size: 13px;">Toque para abrir cámara</p>
+                        <div class="photo-preview" id="photoPreview"></div>
+                        <div class="photo-info" id="photoInfo"></div>
+                    </div>
+                    <div class="face-status" id="faceStatus"></div>
+                    <div class="face-match-result" id="faceMatchResult" style="display:none;"></div>
+                    <div class="field-error-msg" id="err_foto">Debe capturar una foto</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Registro *</label>
+                    <select id="tipoRegistro">
+                        <option value="">Seleccione una opción</option>
+                        <option value="Entrada">Entrada</option>
+                        <option value="Salida">Salida</option>
+                        <option value="Pausa">Pausa</option>
+                        <option value="Retorno">Retorno de Pausa</option>
+                    </select>
+                    <div class="field-error-msg" id="err_tipoRegistro">Seleccione una opción</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Observaciones (opcional)</label>
+                    <textarea id="observacoes" placeholder="Observaciones adicionales"></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" id="btnSubmit" class="btn-submit">✓ Registrar Asistencia</button>
+                    <button type="button" id="btnReport" class="btn-report">📊 Ver Reporte</button>
+                    <button type="button" id="btnClear" class="btn-clear">🔄 Limpiar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reporte -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 Reporte del Día</h2>
+                <button class="modal-close" id="closeReport">&times;</button>
+            </div>
+            <div id="reportContent"></div>
+            <div class="export-buttons">
+                <button class="btn-export" id="exportPdf">📄 PDF</button>
+                <button class="btn-export" id="exportCsv">📋 CSV</button>
+            </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                <button type="button" onclick="clearAllRecords()" class="btn-danger" style="width: 100%;">🗑️ Borrar TODOS los Registros</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Foto -->
+    <div class="photo-modal" id="photoModal">
+        <img id="photoModalImg" src="" alt="Foto">
+    </div>
+
+    <!-- Debug Console (oculto por defecto) -->
+    <div id="debugConsole"></div>
+    <button class="debug-toggle" id="debugToggle">🔧</button>
+
+    <!-- Modal Configuración Google Sheets -->
+    <div class="modal" id="githubConfigModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>⚙️ Configuración Google Sheets</h2>
+                <button class="modal-close" onclick="document.getElementById('githubConfigModal').classList.remove('active')">&times;</button>
+            </div>
+            <div style="margin-bottom: 15px; padding: 12px; background: #e8f5e9; border-radius: 6px; border-left: 4px solid #4caf50;">
+                <strong style="color: #2e7d32;">✓ Google Sheets Configurado</strong>
+                <p style="font-size: 12px; color: #555; margin-top: 5px;">Los registros se envían automáticamente a la planilla.</p>
+            </div>
+            <div style="display: grid; gap: 10px;">
+                <button type="button" id="testGithubBtn" onclick="testGitHubConnection()" style="padding: 12px; background: #4caf50; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">🔗 Probar Conexión</button>
+                <button type="button" onclick="syncPendingRecords()" style="padding: 12px; background: #ff9800; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">🔄 Sincronizar Pendientes</button>
+                <a href="https://docs.google.com/spreadsheets/d/1O5e46G2obLozmqTtQOJir6iO_Hu7fE-pDY-iKy-Tmxw/edit" target="_blank" style="padding: 12px; background: #2196f3; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none;">📊 Abrir Planilla</a>
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 6px; font-size: 11px; color: #1565c0;">
+                <strong>Nota:</strong> 5 toques en el título para abrir esta configuración.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // DEBUG SYSTEM
+        // ============================================
+        var debugConsole = document.getElementById('debugConsole');
+        var debugToggle = document.getElementById('debugToggle');
+        var tapCount = 0;
+        var tapTimer = null;
+        
+        document.getElementById('headerArea').onclick = function() {
+            tapCount++;
+            clearTimeout(tapTimer);
+            tapTimer = setTimeout(function() { tapCount = 0; }, 1000);
+            if (tapCount >= 5) {
+                document.getElementById('githubConfigModal').classList.add('active');
+                loadGitHubConfig();
+                tapCount = 0;
+            }
+        };
+
+        // ============================================
+        // GOOGLE SHEETS CONFIGURATION
+        // ============================================
+        var GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO_Hj0xRfDxlP6GksrZHxmcRYhydb94LtBILJBlzlh4NsF5dFg8z2nO6Y8ia6rb-lU/exec';
+        
+        // URL para buscar funcionários (mesma planilha, aba Folha 2)
+        var FUNCIONARIOS_SHEET_ID = '1O5e46G2obLozmqTtQOJir6iO_Hu7fE-pDY-iKy-Tmxw';
+        var FUNCIONARIOS_GID = '515079562';
+        var FUNCIONARIOS_URL = 'https://docs.google.com/spreadsheets/d/' + FUNCIONARIOS_SHEET_ID + '/export?format=csv&gid=' + FUNCIONARIOS_GID;
+        
+        // Cache de funcionários
+        var funcionariosCache = [];
+        var funcionariosCacheLoaded = false;
+        
+        // ============================================
+        // FACE RECOGNITION CONFIGURATION
+        // ============================================
+        var faceApiLoaded = false;
+        var faceModelsLoaded = false;
+        var currentFaceDescriptor = null;
+        var faceVerificationPassed = false;
+        var FACE_MATCH_THRESHOLD = 0.5; // Quanto menor, mais rigoroso (0.4-0.6 recomendado)
+        
+        // URL dos modelos face-api.js (CDN)
+        var FACE_MODELS_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+
+        function loadGitHubConfig() {
+            updateGitHubStatus();
+            carregarFuncionarios(); // Carregar funcionários ao iniciar
+        }
+
+        function saveGitHubConfig() {
+            alert('Configuración de Google Sheets activa.');
+        }
+
+        function updateGitHubStatus() {
+            var statusEl = document.getElementById('githubStatusIndicator');
+            var statusText = document.getElementById('githubStatusText');
+            statusEl.style.background = '#4caf50';
+            statusText.textContent = 'Google Sheets: Configurado ✓';
+        }
+
+        function testGitHubConnection() {
+            var testBtn = document.getElementById('testGithubBtn');
+            testBtn.textContent = 'Probando...';
+            testBtn.disabled = true;
+
+            // Enviar un registro de prueba vacío para verificar conexión
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: JSON.stringify({
+                    id: 'TEST_' + Date.now(),
+                    data: 'TEST',
+                    hora: 'TEST',
+                    nomeFuncionario: '** PRUEBA DE CONEXIÓN **',
+                    cedula: 'TEST',
+                    cargo: 'TEST',
+                    obra: 'TEST',
+                    tipoRegistro: 'TEST',
+                    latitude: '',
+                    longitude: '',
+                    deviceId: 'TEST',
+                    observacoes: 'Eliminar esta fila - es solo una prueba',
+                    foto: ''
+                })
+            })
+            .then(function(response) {
+                alert('✓ Conexión exitosa con Google Sheets!');
+            })
+            .catch(function(e) {
+                alert('✗ Error: ' + e.message);
+            })
+            .finally(function() {
+                testBtn.textContent = 'Probar Conexión';
+                testBtn.disabled = false;
+            });
+        }
+
+        // ============================================
+        // GOOGLE SHEETS UPLOAD FUNCTION
+        // ============================================
+        function uploadToGitHub(registro) {
+            return new Promise(function(resolve, reject) {
+                log('Google Sheets: Enviando registro...');
+                log('Online: ' + navigator.onLine);
+
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: JSON.stringify(registro)
+                })
+                .then(function(response) {
+                    log('Google Sheets: ✓ Enviado (status: ' + response.status + ')', 'success');
+                    resolve(true);
+                })
+                .catch(function(error) {
+                    log('Google Sheets: ✗ Error - ' + error.message, 'error');
+                    reject(error);
+                });
+            });
+        }
+
+        function syncPendingRecords() {
+            var pending = JSON.parse(localStorage.getItem('pending_github') || '[]');
+            if (pending.length === 0) {
+                log('GitHub: No hay registros pendientes');
+                return;
+            }
+
+            log('GitHub: Sincronizando ' + pending.length + ' pendientes...');
+            
+            var newPending = [];
+            var promises = pending.map(function(registro) {
+                return uploadToGitHub(registro).catch(function() {
+                    newPending.push(registro);
+                    return null;
+                });
+            });
+
+            Promise.all(promises).then(function() {
+                localStorage.setItem('pending_github', JSON.stringify(newPending));
+                updatePendingCount();
+                if (newPending.length === 0) {
+                    log('GitHub: ✓ Todo sincronizado', 'success');
+                } else {
+                    log('GitHub: ' + newPending.length + ' aún pendientes', 'warn');
+                }
+            });
+        }
+
+        function addToPending(registro) {
+            var pending = JSON.parse(localStorage.getItem('pending_github') || '[]');
+            pending.push(registro);
+            localStorage.setItem('pending_github', JSON.stringify(pending));
+            updatePendingCount();
+        }
+
+        function updatePendingCount() {
+            var pending = JSON.parse(localStorage.getItem('pending_github') || '[]');
+            var countEl = document.getElementById('pendingCount');
+            if (pending.length > 0) {
+                countEl.textContent = pending.length + ' pendiente(s)';
+                countEl.style.display = 'inline';
+            } else {
+                countEl.style.display = 'none';
+            }
+        }
+        
+        // ============================================
+        // AUTOCOMPLETE DE FUNCIONÁRIOS
+        // ============================================
+        function carregarFuncionarios() {
+            log('Carregando lista de funcionários...');
+            
+            fetch(FUNCIONARIOS_URL)
+                .then(function(response) { 
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.text(); 
+                })
+                .then(function(csvText) {
+                    // Processar CSV
+                    var lines = csvText.split('\n');
+                    funcionariosCache = [];
+                    
+                    for (var i = 1; i < lines.length; i++) { // Pular cabeçalho
+                        var line = lines[i].trim();
+                        if (!line) continue;
+                        
+                        // Parse CSV simples (considera vírgulas dentro de aspas)
+                        var cols = parseCSVLine(line);
+                        if (cols.length >= 1 && cols[0]) {
+                            var fotoLink = cols[3] || '';
+                            // Converter link do Drive para URL direta de imagem
+                            var fotoUrl = convertDriveLinkToDirectUrl(fotoLink);
+                            
+                            funcionariosCache.push({
+                                nombre: cols[0] || '',
+                                cedula: cols[1] || '',
+                                cargo: cols[2] || '',
+                                fotoDriveLink: fotoLink,
+                                fotoUrl: fotoUrl
+                            });
+                        }
+                    }
+                    
+                    funcionariosCacheLoaded = true;
+                    // Salvar em cache local para uso offline
+                    localStorage.setItem('funcionarios_cache', JSON.stringify(funcionariosCache));
+                    log('Funcionários carregados: ' + funcionariosCache.length, 'success');
+                })
+                .catch(function(error) {
+                    log('Erro ao carregar funcionários: ' + error.message, 'error');
+                    // Tentar carregar do cache local
+                    var cached = localStorage.getItem('funcionarios_cache');
+                    if (cached) {
+                        funcionariosCache = JSON.parse(cached);
+                        funcionariosCacheLoaded = true;
+                        log('Usando cache local: ' + funcionariosCache.length + ' funcionários', 'warn');
+                    }
+                });
+        }
+        
+        // Converter link de compartilhamento do Google Drive para URL direta
+        function convertDriveLinkToDirectUrl(driveLink) {
+            if (!driveLink) return '';
+            
+            // Formato: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+            // Ou: https://drive.google.com/open?id=FILE_ID
+            var fileId = '';
+            
+            // Extrair FILE_ID do link
+            var match1 = driveLink.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            var match2 = driveLink.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            
+            if (match1) {
+                fileId = match1[1];
+            } else if (match2) {
+                fileId = match2[1];
+            }
+            
+            if (fileId) {
+                // Usar thumbnail do Drive (funciona sem CORS) - tamanho grande
+                return 'https://lh3.googleusercontent.com/d/' + fileId + '=s800';
+            }
+            
+            return driveLink; // Retorna original se não conseguir converter
+        }
+        
+        // Função para parsear linha CSV
+        function parseCSVLine(line) {
+            var result = [];
+            var current = '';
+            var inQuotes = false;
+            
+            for (var i = 0; i < line.length; i++) {
+                var char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+        
+        function filtrarFuncionarios(termo) {
+            if (!termo || termo.length < 2) return [];
+            termo = termo.toLowerCase();
+            return funcionariosCache.filter(function(f) {
+                return f.nombre.toLowerCase().indexOf(termo) !== -1 ||
+                       String(f.cedula).indexOf(termo) !== -1;
+            }).slice(0, 10); // Máximo 10 resultados
+        }
+        
+        function mostrarAutocomplete(resultados) {
+            var lista = document.getElementById('autocompleteList');
+            
+            if (resultados.length === 0) {
+                lista.classList.remove('active');
+                return;
+            }
+            
+            var html = '';
+            resultados.forEach(function(f, index) {
+                html += '<div class="autocomplete-item" data-index="' + index + '" data-nombre="' + f.nombre + '" data-cedula="' + f.cedula + '" data-cargo="' + f.cargo + '">';
+                html += '<div class="name">' + f.nombre + '</div>';
+                html += '<div class="details">CI: ' + f.cedula + ' | ' + f.cargo + '</div>';
+                html += '</div>';
+            });
+            
+            lista.innerHTML = html;
+            lista.classList.add('active');
+            
+            // Adicionar eventos de clique
+            lista.querySelectorAll('.autocomplete-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    selecionarFuncionario(
+                        this.getAttribute('data-nombre'),
+                        this.getAttribute('data-cedula'),
+                        this.getAttribute('data-cargo')
+                    );
+                });
+            });
+        }
+        
+        function selecionarFuncionario(nombre, cedula, cargo) {
+            document.getElementById('nomeFuncionario').value = nombre;
+            document.getElementById('cedula').value = cedula;
+            
+            // BLOQUEAR campos nome e cédula após seleção
+            document.getElementById('nomeFuncionario').readOnly = true;
+            document.getElementById('nomeFuncionario').style.background = '#e8f5e9';
+            document.getElementById('cedula').readOnly = true;
+            document.getElementById('cedula').style.background = '#e8f5e9';
+            
+            // Selecionar cargo no select
+            var cargoSelect = document.getElementById('cargo');
+            var cargoEncontrado = false;
+            for (var i = 0; i < cargoSelect.options.length; i++) {
+                if (cargoSelect.options[i].value.toLowerCase() === cargo.toLowerCase()) {
+                    cargoSelect.selectedIndex = i;
+                    cargoEncontrado = true;
+                    break;
+                }
+            }
+            // Se cargo não existe na lista, selecionar "Otro"
+            if (!cargoEncontrado && cargo) {
+                for (var i = 0; i < cargoSelect.options.length; i++) {
+                    if (cargoSelect.options[i].value === 'Otro') {
+                        cargoSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            document.getElementById('autocompleteList').classList.remove('active');
+            log('Funcionário selecionado: ' + nombre, 'success');
+            
+            // Verificar registros existentes para este funcionário/dispositivo hoje
+            verificarRegistrosExistentes();
+        }
+        
+        // Função para desbloquear campos (usado no limpar formulário)
+        function desbloquearCamposFuncionario() {
+            document.getElementById('nomeFuncionario').readOnly = false;
+            document.getElementById('nomeFuncionario').style.background = '';
+            document.getElementById('cedula').readOnly = false;
+            document.getElementById('cedula').style.background = '';
+        }
+        
+        // Verificar se já existe entrada/saída hoje para este dispositivo
+        function verificarRegistrosExistentes() {
+            var hoje = new Date().toLocaleDateString('es-ES');
+            var deviceId = STATE.deviceId;
+            var tipoSelect = document.getElementById('tipoRegistro');
+            
+            try {
+                var stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+                
+                var registros = JSON.parse(stored);
+                var registrosHoje = registros.filter(function(r) {
+                    return r.data === hoje && r.deviceId === deviceId;
+                });
+                
+                // Verificar se já tem entrada
+                var temEntrada = registrosHoje.some(function(r) {
+                    return r.tipoRegistro === 'Entrada';
+                });
+                
+                // Verificar se já tem saída
+                var temSaida = registrosHoje.some(function(r) {
+                    return r.tipoRegistro === 'Salida';
+                });
+                
+                // Desabilitar opções já usadas
+                for (var i = 0; i < tipoSelect.options.length; i++) {
+                    var opt = tipoSelect.options[i];
+                    if (opt.value === 'Entrada' && temEntrada) {
+                        opt.disabled = true;
+                        opt.text = 'Entrada (já registrada)';
+                    } else if (opt.value === 'Salida' && temSaida) {
+                        opt.disabled = true;
+                        opt.text = 'Salida (já registrada)';
+                    }
+                }
+                
+                if (temEntrada) log('Este dispositivo já registrou ENTRADA hoje', 'warn');
+                if (temSaida) log('Este dispositivo já registrou SAÍDA hoje', 'warn');
+                
+            } catch(e) {
+                log('Erro ao verificar registros: ' + e.message, 'error');
+            }
+        }
+        
+        // Resetar opções do tipo de registro
+        function resetarTipoRegistro() {
+            var tipoSelect = document.getElementById('tipoRegistro');
+            for (var i = 0; i < tipoSelect.options.length; i++) {
+                var opt = tipoSelect.options[i];
+                opt.disabled = false;
+                if (opt.value === 'Entrada') opt.text = 'Entrada';
+                if (opt.value === 'Salida') opt.text = 'Salida';
+            }
+            tipoSelect.selectedIndex = 0;
+        }
+        
+        function fecharAutocomplete() {
+            setTimeout(function() {
+                document.getElementById('autocompleteList').classList.remove('active');
+            }, 200);
+        }
+        
+        // Event listeners do autocomplete
+        document.getElementById('nomeFuncionario').addEventListener('input', function() {
+            var termo = this.value;
+            if (funcionariosCacheLoaded) {
+                var resultados = filtrarFuncionarios(termo);
+                mostrarAutocomplete(resultados);
+            }
+        });
+        
+        document.getElementById('nomeFuncionario').addEventListener('focus', function() {
+            var termo = this.value;
+            if (funcionariosCacheLoaded && termo.length >= 2) {
+                var resultados = filtrarFuncionarios(termo);
+                mostrarAutocomplete(resultados);
+            }
+        });
+        
+        document.getElementById('nomeFuncionario').addEventListener('blur', fecharAutocomplete);
+        
+        // Navegação por teclado no autocomplete
+        document.getElementById('nomeFuncionario').addEventListener('keydown', function(e) {
+            var lista = document.getElementById('autocompleteList');
+            var items = lista.querySelectorAll('.autocomplete-item');
+            var selected = lista.querySelector('.autocomplete-item.selected');
+            var index = -1;
+            
+            if (!lista.classList.contains('active') || items.length === 0) return;
+            
+            if (selected) {
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i] === selected) { index = i; break; }
+                }
+            }
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (selected) selected.classList.remove('selected');
+                index = (index + 1) % items.length;
+                items[index].classList.add('selected');
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (selected) selected.classList.remove('selected');
+                index = index <= 0 ? items.length - 1 : index - 1;
+                items[index].classList.add('selected');
+            } else if (e.key === 'Enter' && selected) {
+                e.preventDefault();
+                selecionarFuncionario(
+                    selected.getAttribute('data-nombre'),
+                    selected.getAttribute('data-cedula'),
+                    selected.getAttribute('data-cargo')
+                );
+            } else if (e.key === 'Escape') {
+                lista.classList.remove('active');
+            }
+        });
+        
+        debugToggle.onclick = function() {
+            debugConsole.classList.toggle('active');
+        };
+        
+        function log(msg, type) {
+            type = type || 'info';
+            var time = new Date().toLocaleTimeString();
+            var div = document.createElement('div');
+            div.style.color = type === 'error' ? '#f44' : type === 'success' ? '#0ff' : type === 'warn' ? '#ff0' : '#0f0';
+            div.textContent = '[' + time + '] ' + msg;
+            debugConsole.appendChild(div);
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+            console.log('[' + type + '] ' + msg);
+        }
+        
+        // ============================================
+        // FACE RECOGNITION FUNCTIONS
+        // ============================================
+        
+        // Inicializar face-api.js
+        function initFaceApi() {
+            if (typeof faceapi === 'undefined') {
+                log('face-api.js ainda não carregou, aguardando...', 'warn');
+                setTimeout(initFaceApi, 500);
+                return;
+            }
+            
+            if (faceApiLoaded) return;
+            faceApiLoaded = true;
+            
+            log('Carregando modelos de reconhecimento facial...');
+            updateFaceStatus('Carregando modelos de IA...', 'loading');
+            
+            Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODELS_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODELS_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODELS_URL)
+            ]).then(function() {
+                faceModelsLoaded = true;
+                log('Modelos faciais carregados!', 'success');
+                updateFaceStatus('Reconhecimento facial ativo ✓', 'success');
+                setTimeout(function() { hideFaceStatus(); }, 2000);
+            }).catch(function(err) {
+                log('Erro ao carregar modelos: ' + err.message, 'error');
+                updateFaceStatus('Erro ao carregar modelos faciais', 'error');
+            });
+        }
+        
+        // Atualizar status visual
+        function updateFaceStatus(message, type) {
+            var el = document.getElementById('faceStatus');
+            el.textContent = message;
+            el.className = 'face-status active ' + type;
+        }
+        
+        function hideFaceStatus() {
+            document.getElementById('faceStatus').classList.remove('active');
+        }
+        
+        // Mostrar/ocultar overlay de loading
+        function showFaceLoading(text) {
+            document.getElementById('faceLoadingText').textContent = text || 'Analizando rostro...';
+            document.getElementById('faceLoadingOverlay').classList.add('active');
+        }
+        
+        function hideFaceLoading() {
+            document.getElementById('faceLoadingOverlay').classList.remove('active');
+        }
+        
+        // Detectar rosto e extrair descriptor
+        async function detectFace(imageElement) {
+            if (!faceModelsLoaded) {
+                log('Modelos não carregados ainda', 'warn');
+                return null;
+            }
+            
+            try {
+                const detection = await faceapi
+                    .detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+                
+                return detection;
+            } catch (err) {
+                log('Erro na detecção: ' + err.message, 'error');
+                return null;
+            }
+        }
+        
+        // Comparar dois descriptors faciais
+        function compareFaces(descriptor1, descriptor2) {
+            if (!descriptor1 || !descriptor2) return 1;
+            return faceapi.euclideanDistance(descriptor1, descriptor2);
+        }
+        
+        // Verificar rosto da foto capturada
+        async function verificarRostoFoto(imageSrc) {
+            var funcionarioNome = document.getElementById('nomeFuncionario').value.trim();
+            
+            if (!funcionarioNome) {
+                updateFaceStatus('⚠️ Selecione um funcionário primeiro', 'warning');
+                return false;
+            }
+            
+            // Buscar funcionário no cache
+            var funcionario = funcionariosCache.find(function(f) {
+                return f.nombre.toLowerCase() === funcionarioNome.toLowerCase();
+            });
+            
+            if (!funcionario) {
+                updateFaceStatus('⚠️ Funcionário não encontrado no cadastro', 'warning');
+                faceVerificationPassed = true; // Permite continuar sem verificação
+                return true;
+            }
+            
+            // Verificar se funcionário tem foto cadastrada (URL do Drive)
+            if (!funcionario.fotoUrl) {
+                updateFaceStatus('ℹ️ Funcionário sem foto cadastrada - verificação ignorada', 'warning');
+                faceVerificationPassed = true;
+                return true;
+            }
+            
+            showFaceLoading('Carregando foto cadastrada...');
+            
+            try {
+                // Criar imagem da foto capturada
+                var imgCapturada = new Image();
+                imgCapturada.src = imageSrc;
+                await new Promise(function(resolve, reject) { 
+                    imgCapturada.onload = resolve; 
+                    imgCapturada.onerror = reject;
+                });
+                
+                // Criar imagem da foto cadastrada (do Google Drive)
+                showFaceLoading('Baixando foto do servidor...');
+                log('URL da foto cadastrada: ' + funcionario.fotoUrl);
+                
+                var imgCadastrada = new Image();
+                imgCadastrada.crossOrigin = 'anonymous';
+                
+                // Tentar carregar a imagem
+                var imgLoadPromise = new Promise(function(resolve, reject) {
+                    imgCadastrada.onload = function() {
+                        log('Foto cadastrada carregada: ' + imgCadastrada.width + 'x' + imgCadastrada.height);
+                        resolve();
+                    };
+                    imgCadastrada.onerror = function(e) {
+                        log('Erro ao carregar foto do Drive', 'error');
+                        reject(new Error('Falha ao carregar foto cadastrada'));
+                    };
+                });
+                
+                imgCadastrada.src = funcionario.fotoUrl;
+                
+                // Timeout de 10 segundos
+                var timeoutPromise = new Promise(function(_, reject) {
+                    setTimeout(function() { reject(new Error('Timeout ao carregar foto')); }, 10000);
+                });
+                
+                await Promise.race([imgLoadPromise, timeoutPromise]);
+                
+                showFaceLoading('Analisando rostos...');
+                
+                // Detectar rostos
+                log('Detectando rosto na foto capturada...');
+                var detectionCapturada = await detectFace(imgCapturada);
+                
+                if (!detectionCapturada) {
+                    hideFaceLoading();
+                    updateFaceStatus('❌ Nenhum rosto detectado na foto', 'error');
+                    mostrarResultadoFace(null, 0, funcionario);
+                    faceVerificationPassed = false;
+                    return false;
+                }
+                
+                log('Detectando rosto na foto cadastrada...');
+                var detectionCadastrada = await detectFace(imgCadastrada);
+                
+                if (!detectionCadastrada) {
+                    hideFaceLoading();
+                    updateFaceStatus('⚠️ Não foi possível detectar rosto na foto cadastrada', 'warning');
+                    faceVerificationPassed = true; // Permite continuar
+                    return true;
+                }
+                
+                // Comparar rostos
+                var distance = compareFaces(detectionCapturada.descriptor, detectionCadastrada.descriptor);
+                var similarity = Math.max(0, (1 - distance) * 100).toFixed(1);
+                
+                log('Distância facial: ' + distance.toFixed(3) + ' | Similaridade: ' + similarity + '%');
+                
+                hideFaceLoading();
+                
+                if (distance < FACE_MATCH_THRESHOLD) {
+                    updateFaceStatus('✅ Identidade verificada! (' + similarity + '% similaridade)', 'success');
+                    mostrarResultadoFace(funcionario.fotoUrl, similarity, funcionario, true);
+                    faceVerificationPassed = true;
+                    currentFaceDescriptor = detectionCapturada.descriptor;
+                    return true;
+                } else {
+                    updateFaceStatus('❌ Rosto não corresponde ao funcionário (' + similarity + '%)', 'error');
+                    mostrarResultadoFace(funcionario.fotoUrl, similarity, funcionario, false);
+                    faceVerificationPassed = false;
+                    return false;
+                }
+                
+            } catch (err) {
+                hideFaceLoading();
+                log('Erro na verificação facial: ' + err.message, 'error');
+                updateFaceStatus('⚠️ Erro na verificação - continuando sem validação', 'warning');
+                faceVerificationPassed = true;
+                return true;
+            }
+        }
+        
+        // Mostrar resultado visual da comparação
+        function mostrarResultadoFace(fotoCadastrada, similarity, funcionario, match) {
+            var el = document.getElementById('faceMatchResult');
+            
+            if (!fotoCadastrada) {
+                el.style.display = 'none';
+                return;
+            }
+            
+            var scoreClass = similarity >= 70 ? 'high' : similarity >= 50 ? 'medium' : 'low';
+            
+            el.className = 'face-match-result' + (match ? '' : ' no-match');
+            el.innerHTML = '<img src="' + fotoCadastrada + '" alt="Foto cadastrada">' +
+                '<div class="face-match-info">' +
+                '<div class="name">' + funcionario.nombre + '</div>' +
+                '<div class="score ' + scoreClass + '">' + (match ? '✓ ' : '✗ ') + similarity + '% similaridade</div>' +
+                '</div>';
+            el.style.display = 'flex';
+        }
+        
+        // Esconder resultado
+        function esconderResultadoFace() {
+            document.getElementById('faceMatchResult').style.display = 'none';
+            hideFaceStatus();
+        }
+        
+        // Inicializar face-api quando a página carregar
+        setTimeout(initFaceApi, 1000);
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        var STATE = {
+            fotoBase64: null,
+            fotoOriginalSize: 0,
+            fotoCompressedSize: 0,
+            deviceId: '',
+            deviceIP: 'N/A',
+            isProcessing: false
+        };
+        
+        var STORAGE_KEY = 'presencas_obra';
+        var MAX_PHOTO_WIDTH = 800;  // Largura máxima da foto
+        var PHOTO_QUALITY = 0.6;     // Qualidade JPEG (0.6 = 60%)
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        log('=== INICIANDO APP ===', 'success');
+        
+        // Sincronizar automaticamente quando voltar online
+        window.addEventListener('online', function() {
+            log('Conexión restaurada, sincronizando...', 'success');
+            setTimeout(syncPendingRecords, 1000);
+        });
+        
+        // Sincronizar pendentes ao iniciar (se tiver internet)
+        if (navigator.onLine) {
+            setTimeout(syncPendingRecords, 2000);
+        }
+        
+        // Device ID
+        try {
+            STATE.deviceId = localStorage.getItem('deviceId');
+            if (!STATE.deviceId) {
+                STATE.deviceId = 'dev_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('deviceId', STATE.deviceId);
+            }
+            document.getElementById('deviceInfo').textContent = STATE.deviceId;
+            log('DeviceID: ' + STATE.deviceId);
+        } catch(e) {
+            STATE.deviceId = 'unknown';
+            log('DeviceID error: ' + e.message, 'error');
+        }
+
+        // Update clock
+        function updateClock() {
+            var now = new Date();
+            document.getElementById('dataRegistro').value = now.toLocaleDateString('es-ES');
+            document.getElementById('timeDisplay').textContent = 'Hora: ' + now.toLocaleTimeString('es-ES');
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Update storage info
+        function updateStorageInfo() {
+            try {
+                var stored = localStorage.getItem(STORAGE_KEY);
+                var size = stored ? stored.length : 0;
+                var sizeKB = Math.round(size / 1024);
+                var sizeMB = (size / (1024 * 1024)).toFixed(2);
+                
+                var registros = stored ? JSON.parse(stored) : [];
+                var count = registros.length;
+                
+                // Estimar limite (5MB é comum no mobile)
+                var limitMB = 5;
+                var percent = Math.min(100, (size / (limitMB * 1024 * 1024)) * 100);
+                
+                document.getElementById('storageUsed').textContent = sizeMB + ' MB de ~' + limitMB + ' MB';
+                document.getElementById('storageCount').textContent = count + ' registros';
+                
+                var bar = document.getElementById('storageBar');
+                bar.style.width = percent + '%';
+                bar.className = 'storage-bar-fill';
+                if (percent > 80) bar.classList.add('danger');
+                else if (percent > 50) bar.classList.add('warning');
+                
+                log('Storage: ' + sizeMB + 'MB, ' + count + ' registros');
+            } catch(e) {
+                log('Error actualizando storage: ' + e.message, 'warn');
+            }
+        }
+        updateStorageInfo();
+        
+        // Carregar lista de funcionários ao iniciar
+        carregarFuncionarios();
+        
+        // Verificar registros existentes ao iniciar
+        setTimeout(verificarRegistrosExistentes, 500);
+
+        // ============================================
+        // EVENT BINDINGS
+        // ============================================
+        document.getElementById('btnSubmit').onclick = function(e) {
+            log('>>> CLICK en Registrar');
+            e.preventDefault();
+            doSubmit();
+            return false;
+        };
+
+        document.getElementById('captureLocation').onclick = function(e) {
+            e.preventDefault();
+            captureLocation();
+            return false;
+        };
+
+        document.getElementById('saveManualLoc').onclick = function(e) {
+            e.preventDefault();
+            saveManualLocation();
+            return false;
+        };
+
+        document.getElementById('fotoInput').onchange = function(e) {
+            handlePhoto(e);
+        };
+
+        document.getElementById('btnClear').onclick = function(e) {
+            e.preventDefault();
+            clearForm();
+            return false;
+        };
+
+        document.getElementById('btnReport').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showReport();
+        });
+        
+        document.getElementById('btnReport').addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showReport();
+        });
+
+        document.getElementById('closeReport').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('reportModal').classList.remove('active');
+        });
+        
+        document.getElementById('closeReport').addEventListener('touchend', function(e) {
+            e.preventDefault();
+            document.getElementById('reportModal').classList.remove('active');
+        });
+        
+        document.getElementById('photoModal').onclick = function() {
+            document.getElementById('photoModal').classList.remove('active');
+        };
+
+        document.getElementById('exportPdf').onclick = function() { exportPDF(); };
+        document.getElementById('exportCsv').onclick = function() { exportCSV(); };
+
+        log('Eventos vinculados', 'success');
+
+        // Inicializar status GitHub
+        updateGitHubStatus();
+        updatePendingCount();
+
+        // ============================================
+        // PHOTO COMPRESSION - SOLUÇÃO PRINCIPAL
+        // ============================================
+        function handlePhoto(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            
+            STATE.fotoOriginalSize = file.size;
+            log('Foto original: ' + Math.round(file.size/1024) + 'KB');
+            
+            document.getElementById('photoInfo').textContent = '⏳ Comprimiendo foto...';
+            
+            var reader = new FileReader();
+            
+            reader.onload = function(evt) {
+                var img = new Image();
+                
+                img.onload = function() {
+                    // Calcular novo tamanho mantendo proporção
+                    var width = img.width;
+                    var height = img.height;
+                    
+                    log('Dimensiones originales: ' + width + 'x' + height);
+                    
+                    if (width > MAX_PHOTO_WIDTH) {
+                        var ratio = MAX_PHOTO_WIDTH / width;
+                        width = MAX_PHOTO_WIDTH;
+                        height = Math.round(height * ratio);
+                    }
+                    
+                    log('Dimensiones nuevas: ' + width + 'x' + height);
+                    
+                    // Criar canvas e comprimir
+                    var canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Converter para JPEG com qualidade reduzida
+                    STATE.fotoBase64 = canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+                    STATE.fotoCompressedSize = STATE.fotoBase64.length;
+                    
+                    var originalKB = Math.round(STATE.fotoOriginalSize / 1024);
+                    var compressedKB = Math.round(STATE.fotoCompressedSize / 1024);
+                    var reduction = Math.round((1 - STATE.fotoCompressedSize / STATE.fotoOriginalSize) * 100);
+                    
+                    log('Foto comprimida: ' + compressedKB + 'KB (reducción: ' + reduction + '%)', 'success');
+                    
+                    // Mostrar preview
+                    var preview = document.getElementById('photoPreview');
+                    preview.innerHTML = '<div style="position:relative;display:inline-block;">' +
+                        '<img src="' + STATE.fotoBase64 + '" style="max-width:100%;max-height:200px;border-radius:6px;">' +
+                        '<button type="button" class="photo-remove" onclick="removePhoto()">&times;</button>' +
+                        '</div>';
+                    
+                    document.getElementById('photoInfo').innerHTML = 
+                        '✓ Original: ' + originalKB + 'KB → Comprimida: ' + compressedKB + 'KB ' +
+                        '<span style="color: #4caf50;">(-' + reduction + '%)</span>';
+                    
+                    document.getElementById('err_foto').classList.remove('active');
+                    document.getElementById('photoSection').style.borderColor = '#4caf50';
+                    
+                    // Verificar rosto se modelos carregados
+                    if (faceModelsLoaded) {
+                        verificarRostoFoto(STATE.fotoBase64);
+                    } else {
+                        log('Verificação facial não disponível ainda', 'warn');
+                        faceVerificationPassed = true; // Permite continuar sem verificação
+                    }
+                };
+                
+                img.onerror = function() {
+                    log('Error cargando imagen', 'error');
+                    showError('Error al procesar la foto');
+                };
+                
+                img.src = evt.target.result;
+            };
+            
+            reader.onerror = function() {
+                log('Error leyendo archivo', 'error');
+                showError('Error al leer la foto');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        window.removePhoto = function() {
+            STATE.fotoBase64 = null;
+            document.getElementById('fotoInput').value = '';
+            document.getElementById('photoPreview').innerHTML = '';
+            document.getElementById('photoInfo').textContent = '';
+            document.getElementById('photoSection').style.borderColor = '#667eea';
+            // Limpar status facial
+            esconderResultadoFace();
+            faceVerificationPassed = false;
+        };
+
+        // ============================================
+        // SUBMIT FUNCTION
+        // ============================================
+        function doSubmit() {
+            log('--- doSubmit() ---', 'success');
+            
+            if (STATE.isProcessing) {
+                log('Ya procesando', 'warn');
+                return;
+            }
+            
+            STATE.isProcessing = true;
+            var btn = document.getElementById('btnSubmit');
+            btn.textContent = '⏳ Procesando...';
+            btn.style.background = '#ff9800';
+            
+            clearErrors();
+            
+            // Obtener valores
+            var nomeFuncionario = document.getElementById('nomeFuncionario').value.trim();
+            var cedula = document.getElementById('cedula').value.trim();
+            var cargo = document.getElementById('cargo').value;
+            var obra = document.getElementById('obra').value.trim();
+            var tipoRegistro = document.getElementById('tipoRegistro').value;
+            var latitude = document.getElementById('latitude').value;
+            var longitude = document.getElementById('longitude').value;
+            var accuracy = document.getElementById('accuracy').value;
+            var observacoes = document.getElementById('observacoes').value.trim();
+            var dataRegistro = document.getElementById('dataRegistro').value;
+            
+            log('Foto: ' + (STATE.fotoBase64 ? Math.round(STATE.fotoBase64.length/1024) + 'KB' : 'NO'));
+            
+            // Validar
+            var errors = [];
+            if (!nomeFuncionario) { errors.push('nombre'); showFieldError('nomeFuncionario'); }
+            if (!cedula) { errors.push('cedula'); showFieldError('cedula'); }
+            if (!cargo) { errors.push('cargo'); showFieldError('cargo'); }
+            if (!obra) { errors.push('obra'); showFieldError('obra'); }
+            if (!tipoRegistro) { errors.push('tipo'); showFieldError('tipoRegistro'); }
+            if (!latitude) { errors.push('ubicación'); document.getElementById('err_location').classList.add('active'); }
+            if (!STATE.fotoBase64) { 
+                errors.push('foto'); 
+                document.getElementById('err_foto').classList.add('active');
+                document.getElementById('photoSection').style.borderColor = '#f44336';
+            }
+            
+            if (errors.length > 0) {
+                log('Validación falló: ' + errors.join(', '), 'error');
+                showError('Complete: ' + errors.join(', '));
+                resetButton();
+                return;
+            }
+            
+            // Verificar reconhecimento facial (aviso, não bloqueia)
+            if (faceModelsLoaded && !faceVerificationPassed) {
+                log('AVISO: Verificação facial não passou', 'warn');
+                // Opcional: descomentar para bloquear
+                // showError('Verificación facial falló. Capture otra foto.');
+                // resetButton();
+                // return;
+            }
+            
+            // Verificar fecha
+            var hoje = new Date().toLocaleDateString('es-ES');
+            if (dataRegistro !== hoje) {
+                showError('Solo fecha actual permitida');
+                resetButton();
+                return;
+            }
+            
+            // VALIDAÇÃO: Não permitir mais de uma entrada ou saída por dispositivo no mesmo dia
+            if (tipoRegistro === 'Entrada' || tipoRegistro === 'Salida') {
+                try {
+                    var storedCheck = localStorage.getItem(STORAGE_KEY);
+                    if (storedCheck) {
+                        var registrosCheck = JSON.parse(storedCheck);
+                        var duplicado = registrosCheck.some(function(r) {
+                            return r.data === hoje && 
+                                   r.deviceId === STATE.deviceId && 
+                                   r.tipoRegistro === tipoRegistro;
+                        });
+                        
+                        if (duplicado) {
+                            showError('Este dispositivo ya registró ' + tipoRegistro.toUpperCase() + ' hoy. No se permite duplicar.');
+                            log('BLOQUEADO: ' + tipoRegistro + ' duplicada', 'error');
+                            resetButton();
+                            return;
+                        }
+                    }
+                } catch(e) {
+                    log('Erro na validação de duplicados: ' + e.message, 'error');
+                }
+            }
+            
+            // Criar registro
+            var registro = {
+                id: Date.now(),
+                data: dataRegistro,
+                hora: new Date().toLocaleTimeString('es-ES'),
+                nomeFuncionario: nomeFuncionario,
+                cedula: cedula,
+                cargo: cargo,
+                obra: obra,
+                latitude: latitude,
+                longitude: longitude,
+                accuracy: accuracy,
+                tipoRegistro: tipoRegistro,
+                observacoes: observacoes,
+                foto: STATE.fotoBase64,
+                deviceId: STATE.deviceId,
+                faceVerified: faceVerificationPassed,
+                faceVerifiedOffline: !navigator.onLine || !faceModelsLoaded
+            };
+            
+            // Guardar
+            try {
+                var registros = [];
+                var stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    registros = JSON.parse(stored);
+                }
+                
+                registros.push(registro);
+                
+                var jsonStr = JSON.stringify(registros);
+                log('Guardando: ' + Math.round(jsonStr.length/1024) + 'KB');
+                
+                localStorage.setItem(STORAGE_KEY, jsonStr);
+                
+                log('=== GUARDADO OK ===', 'success');
+                
+                document.getElementById('successMessage').classList.add('active');
+                document.getElementById('errorMessage').classList.remove('active');
+                
+                updateStorageInfo();
+                
+                // Upload para Google Sheets
+                if (GOOGLE_SCRIPT_URL) {
+                    uploadToGitHub(registro)
+                        .then(function() {
+                            log('Registro sincronizado con Google Sheets', 'success');
+                        })
+                        .catch(function(err) {
+                            log('Google Sheets falló, agregado a pendientes', 'warn');
+                            addToPending(registro);
+                        });
+                }
+                
+                setTimeout(function() {
+                    clearForm();
+                    document.getElementById('successMessage').classList.remove('active');
+                }, 2000);
+                
+            } catch(e) {
+                log('ERROR: ' + e.message, 'error');
+                
+                if (e.name === 'QuotaExceededError' || e.message.indexOf('quota') >= 0) {
+                    showError('Almacenamiento lleno. Borre registros antiguos.');
+                    
+                    // Ofrecer limpieza automática
+                    if (confirm('¿Desea borrar registros de días anteriores para liberar espacio?')) {
+                        clearOldRecords();
+                        // Intentar guardar de nuevo
+                        try {
+                            var registros2 = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                            registros2.push(registro);
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(registros2));
+                            log('Guardado después de limpieza', 'success');
+                            document.getElementById('successMessage').classList.add('active');
+                            updateStorageInfo();
+                            setTimeout(function() {
+                                clearForm();
+                                document.getElementById('successMessage').classList.remove('active');
+                            }, 2000);
+                        } catch(e2) {
+                            showError('Aún sin espacio. Borre todos los registros.');
+                        }
+                    }
+                } else {
+                    showError('Error: ' + e.message);
+                }
+            }
+            
+            resetButton();
+            
+            function resetButton() {
+                STATE.isProcessing = false;
+                btn.textContent = '✓ Registrar Asistencia';
+                btn.style.background = '#4caf50';
+            }
+        }
+
+        // ============================================
+        // STORAGE MANAGEMENT
+        // ============================================
+        window.clearOldRecords = function() {
+            try {
+                var hoje = new Date().toLocaleDateString('es-ES');
+                var stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+                
+                var registros = JSON.parse(stored);
+                var countBefore = registros.length;
+                
+                // Manter apenas registros de hoje
+                registros = registros.filter(function(r) { return r.data === hoje; });
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+                
+                var deleted = countBefore - registros.length;
+                log('Borrados ' + deleted + ' registros antiguos', 'success');
+                alert('Se borraron ' + deleted + ' registros de días anteriores.');
+                
+                updateStorageInfo();
+            } catch(e) {
+                log('Error limpiando: ' + e.message, 'error');
+            }
+        };
+        
+        window.clearAllRecords = function() {
+            if (confirm('¿BORRAR TODOS los registros? Esta acción no se puede deshacer.')) {
+                if (confirm('¿Está SEGURO? Se perderán todos los datos.')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    log('Todos los registros borrados', 'warn');
+                    alert('Todos los registros han sido borrados.');
+                    updateStorageInfo();
+                    document.getElementById('reportModal').classList.remove('active');
+                }
+            }
+        };
+
+        // ============================================
+        // HELPER FUNCTIONS
+        // ============================================
+        function showFieldError(fieldId) {
+            var field = document.getElementById(fieldId);
+            var err = document.getElementById('err_' + fieldId);
+            if (field) field.classList.add('field-error');
+            if (err) err.classList.add('active');
+        }
+        
+        function clearErrors() {
+            var fields = document.querySelectorAll('.field-error');
+            for (var i = 0; i < fields.length; i++) fields[i].classList.remove('field-error');
+            var errs = document.querySelectorAll('.field-error-msg');
+            for (var i = 0; i < errs.length; i++) errs[i].classList.remove('active');
+            document.getElementById('photoSection').style.borderColor = '#667eea';
+        }
+        
+        function showError(msg) {
+            var el = document.getElementById('errorMessage');
+            el.textContent = '❌ ' + msg;
+            el.classList.add('active');
+        }
+        
+        function clearForm() {
+            document.getElementById('nomeFuncionario').value = '';
+            document.getElementById('cedula').value = '';
+            document.getElementById('cargo').value = '';
+            document.getElementById('obra').value = '';
+            document.getElementById('tipoRegistro').value = '';
+            document.getElementById('observacoes').value = '';
+            document.getElementById('latitude').value = '';
+            document.getElementById('longitude').value = '';
+            document.getElementById('accuracy').value = '';
+            document.getElementById('latManual').value = '';
+            document.getElementById('lngManual').value = '';
+            
+            STATE.fotoBase64 = null;
+            document.getElementById('fotoInput').value = '';
+            document.getElementById('photoPreview').innerHTML = '';
+            document.getElementById('photoInfo').textContent = '';
+            document.getElementById('photoSection').style.borderColor = '#667eea';
+            
+            var locInfo = document.getElementById('locationInfo');
+            locInfo.className = 'location-info';
+            locInfo.textContent = 'Ubicación no capturada';
+            document.getElementById('manualLocationSection').style.display = 'none';
+            
+            clearErrors();
+            document.getElementById('errorMessage').classList.remove('active');
+            updateClock();
+            
+            // Desbloquear campos de funcionário
+            desbloquearCamposFuncionario();
+            
+            // Resetar opções de tipo de registro
+            resetarTipoRegistro();
+            
+            // Limpar status de verificação facial
+            esconderResultadoFace();
+            faceVerificationPassed = false;
+        }
+
+        // ============================================
+        // GEOLOCATION
+        // ============================================
+        function captureLocation() {
+            var locInfo = document.getElementById('locationInfo');
+            locInfo.className = 'location-info loading';
+            locInfo.textContent = '🔄 Obteniendo ubicación...';
+            
+            if (!navigator.geolocation) {
+                showLocationError();
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    setLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy || 50, 'GPS');
+                },
+                function(err) {
+                    log('GPS error: ' + err.message, 'warn');
+                    // Tentar IP
+                    fetch('https://ipapi.co/json/')
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d.latitude && d.longitude) {
+                                setLocation(d.latitude, d.longitude, 5000, 'IP');
+                            } else {
+                                showLocationError();
+                            }
+                        })
+                        .catch(function() { showLocationError(); });
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+        
+        function setLocation(lat, lng, acc, method) {
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            document.getElementById('accuracy').value = acc;
+            
+            var locInfo = document.getElementById('locationInfo');
+            locInfo.className = 'location-info success';
+            locInfo.innerHTML = '<strong>' + (method === 'GPS' ? '✓ GPS' : '📡 IP') + '</strong><br>' +
+                'Lat: ' + parseFloat(lat).toFixed(6) + ', Lng: ' + parseFloat(lng).toFixed(6) + '<br>' +
+                '<a href="https://maps.google.com/?q=' + lat + ',' + lng + '" target="_blank" style="color:#667eea;font-size:12px;">📍 Ver mapa</a>';
+            
+            document.getElementById('manualLocationSection').style.display = 'none';
+            document.getElementById('err_location').classList.remove('active');
+            log('Ubicación: ' + lat + ', ' + lng + ' (' + method + ')', 'success');
+        }
+        
+        function showLocationError() {
+            var locInfo = document.getElementById('locationInfo');
+            locInfo.className = 'location-info error';
+            locInfo.textContent = '❌ No se pudo obtener. Use opción manual.';
+            document.getElementById('manualLocationSection').style.display = 'block';
+        }
+        
+        function saveManualLocation() {
+            var lat = parseFloat(document.getElementById('latManual').value);
+            var lng = parseFloat(document.getElementById('lngManual').value);
+            
+            if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                showError('Coordenadas inválidas');
+                return;
+            }
+            
+            setLocation(lat, lng, 0, 'Manual');
+        }
+
+        // ============================================
+        // REPORT
+        // ============================================
+        var reportData = [];
+        
+        function showReport() {
+            var hoje = new Date().toLocaleDateString('es-ES');
+            var registros = [];
+            
+            try {
+                var stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    registros = JSON.parse(stored);
+                    registros = registros.filter(function(r) { return r.data === hoje; });
+                }
+            } catch(e) {}
+            
+            reportData = registros;
+            var content = document.getElementById('reportContent');
+            
+            if (registros.length === 0) {
+                content.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">📭 No hay registros para hoy</p>';
+            } else {
+                var html = '<p style="margin-bottom:15px;font-size:14px;"><strong>📅 Fecha:</strong> ' + hoje + ' | <strong>📊 Total:</strong> ' + registros.length + '</p>';
+                
+                // Versão tabela (desktop)
+                html += '<div class="report-table-container" style="overflow-x:auto;"><table class="report-table"><thead><tr><th>Hora</th><th>Nombre</th><th>Tipo</th><th>Obra</th><th>Verificación</th><th>Foto</th></tr></thead><tbody>';
+                for (var i = 0; i < registros.length; i++) {
+                    var r = registros[i];
+                    var faceStatus = getFaceVerificationStatus(r);
+                    html += '<tr><td>' + r.hora + '</td><td>' + r.nomeFuncionario + '</td><td>' + r.tipoRegistro + '</td><td>' + r.obra + '</td>' +
+                        '<td>' + faceStatus + '</td>' +
+                        '<td>' + (r.foto ? '<img src="' + r.foto + '" class="report-photo" onclick="openPhoto(' + i + ')">' : '-') + '</td></tr>';
+                }
+                html += '</tbody></table></div>';
+                
+                // Versão cards (mobile)
+                html += '<div class="report-cards">';
+                for (var i = 0; i < registros.length; i++) {
+                    var r = registros[i];
+                    var tipoClass = (r.tipoRegistro || '').toLowerCase().replace('í', 'i');
+                    var faceStatus = getFaceVerificationStatus(r);
+                    html += '<div class="report-card-item">';
+                    html += '<div class="card-header">';
+                    html += '<span class="card-name">' + r.nomeFuncionario + '</span>';
+                    html += '<span class="card-type ' + tipoClass + '">' + r.tipoRegistro + '</span>';
+                    html += '</div>';
+                    html += '<div class="card-details">';
+                    html += '<div>🕐 <strong>' + r.hora + '</strong></div>';
+                    html += '<div>📍 ' + r.obra + '</div>';
+                    html += '<div>🪪 CI: ' + (r.cedula || '-') + ' | ' + (r.cargo || '-') + '</div>';
+                    html += '<div>🔐 ' + faceStatus + '</div>';
+                    if (r.observacoes) html += '<div>📝 ' + r.observacoes + '</div>';
+                    html += '</div>';
+                    if (r.foto) {
+                        html += '<div class="card-photo"><img src="' + r.foto + '" onclick="openPhoto(' + i + ')"></div>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+                
+                content.innerHTML = html;
+            }
+            
+            document.getElementById('reportModal').classList.add('active');
+        }
+        
+        // Função para obter status de verificação facial formatado
+        function getFaceVerificationStatus(registro) {
+            // Registros antigos sem o campo
+            if (registro.faceVerified === undefined) {
+                return '<span style="color:#999;font-size:11px;">-</span>';
+            }
+            
+            // Verificado com sucesso
+            if (registro.faceVerified === true) {
+                return '<span style="color:#4caf50;font-size:11px;">✅ Verificado</span>';
+            }
+            
+            // Offline ou sem modelo carregado
+            if (registro.faceVerifiedOffline === true) {
+                return '<span style="color:#ff9800;font-size:11px;">⚠️ Offline</span>';
+            }
+            
+            // Falhou na verificação
+            return '<span style="color:#f44336;font-size:11px;">❌ No verificado</span>';
+        }
+        
+        window.openPhoto = function(i) {
+            if (reportData[i] && reportData[i].foto) {
+                document.getElementById('photoModalImg').src = reportData[i].foto;
+                document.getElementById('photoModal').classList.add('active');
+            }
+        };
+        
+        function exportPDF() {
+            if (!reportData.length) { alert('No hay datos'); return; }
+            var hoje = new Date().toLocaleDateString('es-ES');
+            var win = window.open('', '_blank');
+            if (!win) { alert('Permita ventanas emergentes'); return; }
+            
+            var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#667eea;color:white;padding:8px}td{border:1px solid #ddd;padding:8px}.detail{margin:20px 0;padding:15px;border:1px solid #ddd;page-break-inside:avoid}img{max-width:200px}.verified{color:#4caf50}.not-verified{color:#f44336}.offline{color:#ff9800}</style></head><body>';
+            html += '<h2 style="text-align:center">REPORTE DE ASISTENCIA - ' + hoje + '</h2><p>Total: ' + reportData.length + '</p>';
+            html += '<table><tr><th>Hora</th><th>Nombre</th><th>Cédula</th><th>Cargo</th><th>Tipo</th><th>Obra</th><th>Verificación</th><th>Observaciones</th></tr>';
+            for (var i = 0; i < reportData.length; i++) {
+                var r = reportData[i];
+                var faceStatusText = getFaceVerificationStatusText(r);
+                html += '<tr><td>' + r.hora + '</td><td>' + r.nomeFuncionario + '</td><td>' + r.cedula + '</td><td>' + r.cargo + '</td><td>' + r.tipoRegistro + '</td><td>' + r.obra + '</td><td>' + faceStatusText + '</td><td style="font-size:10px;">' + (r.observacoes || '-') + '</td></tr>';
+            }
+            html += '</table><h3>Fotos</h3>';
+            for (var i = 0; i < reportData.length; i++) {
+                var r = reportData[i];
+                var faceStatusText = getFaceVerificationStatusText(r);
+                html += '<div class="detail"><strong>' + r.nomeFuncionario + ' - ' + r.hora + '</strong><br><span style="font-size:10px;color:#666;">Verificación: ' + faceStatusText + '</span><br>' + (r.foto ? '<img src="' + r.foto + '">' : '') + (r.observacoes ? '<br><em style="font-size:11px;color:#555;">Obs: ' + r.observacoes + '</em>' : '') + '</div>';
+            }
+            html += '</body></html>';
+            win.document.write(html);
+            win.document.close();
+            setTimeout(function() { win.print(); }, 500);
+        }
+        
+        // Versão texto simples para PDF/CSV
+        function getFaceVerificationStatusText(registro) {
+            if (registro.faceVerified === undefined) return '-';
+            if (registro.faceVerified === true) return '<span class="verified">✓ Verificado</span>';
+            if (registro.faceVerifiedOffline === true) return '<span class="offline">⚠ Offline</span>';
+            return '<span class="not-verified">✗ No verificado</span>';
+        }
+        
+        function exportCSV() {
+            if (!reportData.length) { alert('No hay datos'); return; }
+            var csv = 'Fecha,Hora,Nombre,Cedula,Cargo,Tipo,Obra,Lat,Lng,Verificacion_Facial,Dispositivo,Observaciones\n';
+            for (var i = 0; i < reportData.length; i++) {
+                var r = reportData[i];
+                var obs = (r.observacoes || '').replace(/"/g, '""');
+                var faceStatus = r.faceVerified === true ? 'Verificado' : (r.faceVerifiedOffline === true ? 'Offline' : (r.faceVerified === false ? 'No Verificado' : '-'));
+                csv += '"' + r.data + '","' + r.hora + '","' + r.nomeFuncionario + '","' + r.cedula + '","' + r.cargo + '","' + r.tipoRegistro + '","' + r.obra + '","' + r.latitude + '","' + r.longitude + '","' + faceStatus + '","' + (r.deviceId || '') + '","' + obs + '"\n';
+            }
+            var blob = new Blob([csv], {type:'text/csv'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'reporte_' + new Date().toLocaleDateString('es-ES').replace(/\//g,'-') + '.csv';
+            link.click();
+        }
+
+        log('=== APP LISTA ===', 'success');
+    </script>
+    
+    <!-- Face Loading Overlay -->
+    <div class="face-loading-overlay" id="faceLoadingOverlay">
+        <div class="spinner"></div>
+        <div id="faceLoadingText">Analizando rostro...</div>
+    </div>
+</body>
+</html>
